@@ -18,6 +18,9 @@ export default function CreateModal({ open, mode, setMode, form, setForm, teams,
           <input value={form.title} onChange={(e) => setForm((p) => ({ ...p, title: e.target.value }))} placeholder="Titel" />
           <input value={form.publicInfo} onChange={(e) => setForm((p) => ({ ...p, publicInfo: e.target.value }))} placeholder="Öffentliche Info (immer sichtbar)" />
           <textarea value={form.body} onChange={(e) => setForm((p) => ({ ...p, body: e.target.value }))} placeholder="Inhalt/Details" rows={4} />
+          <input value={form.category} onChange={(e) => setForm((p) => ({ ...p, category: e.target.value }))} placeholder="Kategorie" />
+          <input value={form.project} onChange={(e) => setForm((p) => ({ ...p, project: e.target.value }))} placeholder="Projekt" />
+          <input value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" />
           <select value={form.team} onChange={(e) => setForm((p) => ({ ...p, team: e.target.value }))}>
             <option value="">Kein Team</option>
             {teams.map((t) => <option key={t._id} value={t._id}>{t.name}</option>)}

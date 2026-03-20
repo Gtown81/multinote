@@ -15,6 +15,8 @@ const noteSchema = new mongoose.Schema(
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null, index: true },
     title: { type: String, required: true, trim: true, maxlength: 180 },
+    category: { type: String, default: '', trim: true, maxlength: 80 },
+    project: { type: String, default: '', trim: true, maxlength: 120 },
     publicInfo: { type: String, default: '', maxlength: 220 },
     encryptedContent: {
       cipherText: { type: String, default: '' },

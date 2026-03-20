@@ -28,6 +28,7 @@ body { margin: 0; }
 .split { display: grid; grid-template-columns: minmax(280px, 380px) 1fr; gap: 16px; }
 .editor { border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; background: #f8fbff; }
 
+ .search { margin-bottom: 10px; }
 .segmented { display: inline-flex; gap: 8px; margin-bottom: 12px; }
 .list { display: grid; gap: 10px; }
 .item { border: 1px solid #e2e8f0; border-radius: 14px; padding: 12px; background: #f8fbff; }

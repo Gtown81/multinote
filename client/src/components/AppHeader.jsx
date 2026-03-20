@@ -7,7 +7,9 @@ export default function AppHeader({
   cryptoPassword,
   setCryptoPassword,
   rememberCrypto,
-  setRememberCrypto
+  setRememberCrypto,
+  autoDecryptAll,
+  setAutoDecryptAll
 }) {
   return (
     <header className="app-header glass">
@@ -36,6 +38,10 @@ export default function AppHeader({
             onChange={(e) => setRememberCrypto(e.target.checked)}
           />
           Im Browser speichern
+        </label>
+        <label className="remember">
+          <input type="checkbox" checked={autoDecryptAll} onChange={(e) => setAutoDecryptAll(e.target.checked)} />
+          Alle auto entschlüsseln
         </label>
       </div>
 

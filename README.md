@@ -4,6 +4,9 @@
 - Seiten im Header: **Workspace**, **Teams**, **Profil**
 - Oben im Header: E2E Passwort-Feld + Checkbox „Im Browser speichern“ für automatisches Entschlüsseln
 - Workspace mit Tabs: **Notes / Tasks / Todos**
+- Auto-Entschlüsseln: Checkbox **Alle auto entschlüsseln** im Header
+- Suche oberhalb der Tabs über Notes/Tasks/Todos inkl. Tags/Kategorie/Projekt
+- Tags, Kategorie und Projekt für Notes/Tasks/Todos
 - Globaler **+ Button** für neue Note/Task/Todo (mit Team-Zuweisung)
 - Notes haben:
   - verschlüsselten Inhalt (E2E)

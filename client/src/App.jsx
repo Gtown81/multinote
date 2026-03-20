@@ -10,7 +10,7 @@ import { decryptText, encryptText } from './utils/crypto.js';
 import { enqueue, flushQueue, queuedCount } from './services/offlineQueue.js';
 
 function emptyForm() {
-  return { title: '', publicInfo: '', body: '', team: '', file: null };
+  return { title: '', publicInfo: '', body: '', team: '', file: null, tags: '', category: '', project: '' };
 }
 
 function fileToBase64(file) {
@@ -44,6 +44,7 @@ export default function App() {
   const [error, setError] = useState('');
   const [cryptoPassword, setCryptoPassword] = useState(localStorage.getItem('atelier_crypto_pw') || '');
   const [rememberCrypto, setRememberCrypto] = useState(localStorage.getItem('atelier_crypto_remember') === '1');
+  const [autoDecryptAll, setAutoDecryptAll] = useState(localStorage.getItem('atelier_auto_decrypt') === '1');
   const [queueCount, setQueueCount] = useState(queuedCount());
   const [page, setPage] = useState('workspace');
   const [tab, setTab] = useState('notes');
@@ -86,7 +87,7 @@ export default function App() {
 
 
   useEffect(() => {
-    if (!cryptoPassword || !notes.length) return;
+    if (!autoDecryptAll || !cryptoPassword || !notes.length) return;
     Promise.all(
       notes.map(async (n) => {
         try {
@@ -97,8 +98,12 @@ export default function App() {
         }
       })
     ).then((resolved) => setNotes(resolved));
-  }, [cryptoPassword, notes.length]);
+  }, [autoDecryptAll, cryptoPassword, notes.length]);
 
+
+  useEffect(() => {
+    localStorage.setItem('atelier_auto_decrypt', autoDecryptAll ? '1' : '0');
+  }, [autoDecryptAll]);
 
   useEffect(() => {
     if (rememberCrypto && cryptoPassword) {
@@ -156,6 +161,9 @@ export default function App() {
         publicInfo: form.publicInfo,
         shared: !!form.team,
         team: form.team || null,
+        tags: form.tags.split(',').map((x) => x.trim()).filter(Boolean),
+        category: form.category || '',
+        project: form.project || '',
         encryptedContent
       });
       if (data.note) {
@@ -177,7 +185,10 @@ export default function App() {
       const { data } = await apiWithOffline('post', '/tasks', {
         title: form.title,
         description: form.body,
-        team: form.team || null
+        team: form.team || null,
+        tags: form.tags.split(',').map((x) => x.trim()).filter(Boolean),
+        category: form.category || '',
+        project: form.project || ''
       });
       if (data.task) setTasks((prev) => [data.task, ...prev]);
     }
@@ -186,7 +197,10 @@ export default function App() {
       const { data } = await apiWithOffline('post', '/todos', {
         title: form.title,
         details: form.body,
-        team: form.team || null
+        team: form.team || null,
+        tags: form.tags.split(',').map((x) => x.trim()).filter(Boolean),
+        category: form.category || '',
+        project: form.project || ''
       });
       if (data.todo) setTodos((prev) => [data.todo, ...prev]);
     }
@@ -211,7 +225,7 @@ export default function App() {
 
   return (
     <main className="screen">
-      <AppHeader page={page} setPage={setPage} onOpenCreate={() => setCreateOpen(true)} queueCount={queueCount} user={user} cryptoPassword={cryptoPassword} setCryptoPassword={setCryptoPassword} rememberCrypto={rememberCrypto} setRememberCrypto={setRememberCrypto} />
+      <AppHeader page={page} setPage={setPage} onOpenCreate={() => setCreateOpen(true)} queueCount={queueCount} user={user} cryptoPassword={cryptoPassword} setCryptoPassword={setCryptoPassword} rememberCrypto={rememberCrypto} setRememberCrypto={setRememberCrypto} autoDecryptAll={autoDecryptAll} setAutoDecryptAll={setAutoDecryptAll} />
 
       {page === 'workspace' && (
         <WorkspacePage
@@ -238,16 +252,21 @@ export default function App() {
               publicInfo: draft.publicInfo || '',
               team: draft.team || null,
               shared: !!draft.team,
+              tags: Array.isArray(draft.tags) ? draft.tags : String(draft.tags || '').split(',').map((x) => x.trim()).filter(Boolean),
+              category: draft.category || '',
+              project: draft.project || '',
               encryptedContent
             });
             if (data.note) setNotes((prev) => prev.map((n) => (n._id === draft._id ? data.note : n)));
           }}
           onSaveTask={async (draft) => {
-            const { data } = await apiWithOffline('put', `/tasks/${draft._id}`, draft);
+            const taskPayload = { ...draft, tags: Array.isArray(draft.tags) ? draft.tags : String(draft.tags || '').split(',').map((x) => x.trim()).filter(Boolean) };
+            const { data } = await apiWithOffline('put', `/tasks/${draft._id}`, taskPayload);
             if (data.task) setTasks((prev) => prev.map((n) => (n._id === draft._id ? data.task : n)));
           }}
           onSaveTodo={async (draft) => {
-            const { data } = await apiWithOffline('put', `/todos/${draft._id}`, draft);
+            const todoPayload = { ...draft, tags: Array.isArray(draft.tags) ? draft.tags : String(draft.tags || '').split(',').map((x) => x.trim()).filter(Boolean) };
+            const { data } = await apiWithOffline('put', `/todos/${draft._id}`, todoPayload);
             if (data.todo) setTodos((prev) => prev.map((n) => (n._id === draft._id ? data.todo : n)));
           }}
         />
