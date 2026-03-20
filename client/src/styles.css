@@ -8,7 +8,7 @@
 body { margin: 0; }
 
 .screen {
-  max-width: 1100px;
+  max-width: 1200px;
   margin: 0 auto;
   padding: 24px;
 }
@@ -34,7 +34,7 @@ body { margin: 0; }
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.05);
 }
 
-input, textarea, button {
+input, textarea, button, select {
   width: 100%;
   border: 1px solid #d1d5db;
   border-radius: 10px;
@@ -54,7 +54,12 @@ button.link { background: transparent; color: #2563eb; width: auto; border: none
 
 .row { display: flex; gap: 8px; align-items: center; }
 .row.between { justify-content: space-between; }
+.stack { display: grid; gap: 8px; }
 .list { margin-top: 12px; display: grid; gap: 10px; }
 .item { border: 1px solid #e5e7eb; border-radius: 12px; padding: 10px; }
 .item-title { font-weight: 600; }
 .error { color: #b91c1c; font-weight: 600; }
+.muted { color: #64748b; font-size: 12px; }
+.file-upload { position: relative; overflow: hidden; border-radius: 8px; background: #0f172a; color: #fff; padding: 8px 12px; }
+.file-upload input { position: absolute; inset: 0; opacity: 0; }
+hr { border: none; border-top: 1px solid #e5e7eb; margin: 12px 0; }

@@ -6,11 +6,13 @@ Diese Version ist als **voll funktionsfähige Basis** umgesetzt mit:
 - Backend API (Node.js + Express)
 - MongoDB Atlas als zentrale Online-Datenbank
 
-## Features
+## Umgesetzte Kernfeatures
 - Registrierung/Login mit JWT
-- Notizen: erstellen, bearbeiten, löschen, `shared`-Status
-- Tasks: erstellen, abhaken, löschen
-- Persistente Daten über MongoDB Atlas
+- **Ende-zu-Ende Verschlüsselung für Notiz-Inhalte** (AES-256-GCM im Client)
+- **Team-Freigaben mit Rollen/Rechten** (Owner/Editor/Viewer)
+- **Push-Notification-Registrierung** (Web Push Subscription gespeichert)
+- **Dateianhänge** pro Notiz (Base64-Upload, max 5 MB je Datei)
+- **Offline Sync** (Operationen werden offline in Queue gespeichert und bei Online-Status synchronisiert)
 
 ## 1) MongoDB Atlas einrichten
 1. Atlas Cluster erstellen
@@ -56,11 +58,19 @@ npm run ios
 - `POST /api/auth/login`
 - `GET /api/auth/me`
 - `GET/POST/PUT/DELETE /api/notes`
+- `POST /api/notes/:id/attachments`
+- `DELETE /api/notes/:id/attachments/:attachmentId`
 - `GET/POST/PUT/DELETE /api/tasks`
+- `GET/POST /api/teams`
+- `POST /api/teams/:id/members`
+- `PATCH /api/teams/:id/members/:memberId`
+- `POST /api/push/subscribe`
+- `GET /api/push/subscriptions`
 
-## Nächste sinnvolle Erweiterungen
-- Ende-zu-Ende Verschlüsselung für Notiz-Inhalte
-- Team-Freigaben mit Rollen/Rechten
-- Push Notifications
-- Dateianhänge
-- Offline Sync
+## Hinweise zur E2E-Verschlüsselung
+- Klartext wird nur im Client ver-/entschlüsselt.
+- Der Server speichert nur Ciphertext + IV + Salt.
+- Das E2E-Passwort wird **nicht** an den Server gesendet.
+
+## Hinweise zu Push
+- Für echte Browser Push-Zustellung bitte VAPID Keys integrieren (`VITE_VAPID_PUBLIC_KEY`) und einen Push-Sender (z. B. `web-push` im Backend) ergänzen.
