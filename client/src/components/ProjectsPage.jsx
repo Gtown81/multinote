@@ -4,13 +4,20 @@ export default function ProjectsPage({ projects, activeProjectId, setActiveProje
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
 
+  const create = () => {
+    if (!name.trim()) return;
+    onCreateProject(name, description);
+    setName('');
+    setDescription('');
+  };
+
   return (
     <section className="card modern split">
       <div className="stack">
-        <h2>Projekte</h2>
+        <div className="row"><h2>Projekte</h2><button title="Neues Projekt" onClick={create}>＋</button></div>
         <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Projektname" />
         <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Beschreibung" rows={3} />
-        <button onClick={() => name.trim() && (onCreateProject(name, description), setName(''), setDescription(''))}>Projekt anlegen</button>
+        <button onClick={create}>Projekt anlegen</button>
       </div>
       <div className="stack">
         <h3>Untertabs / Filter</h3>

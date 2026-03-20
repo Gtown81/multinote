@@ -24,7 +24,7 @@ export default function CreateModal({ open, mode, setMode, form, setForm, teams,
             {projects.map((p) => <option key={p._id} value={p._id}>{p.name}</option>)}
           </select>
           <select value={form.artistId || ""} onChange={(e) => setForm((p) => ({ ...p, artistId: e.target.value }))}>
-            <option value="">Künstler wählen</option>
+            <option value="">Strategie wählen</option>
             {artists.map((a) => <option key={a._id} value={a._id}>{a.name}</option>)}
           </select>
           <input value={form.tags} onChange={(e) => setForm((p) => ({ ...p, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" />

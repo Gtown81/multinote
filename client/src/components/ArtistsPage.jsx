@@ -4,13 +4,20 @@ export default function ArtistsPage({ artists, activeArtistId, setActiveArtistId
   const [name, setName] = useState('');
   const [profile, setProfile] = useState('');
 
+  const create = () => {
+    if (!name.trim()) return;
+    onCreateArtist(name, profile);
+    setName('');
+    setProfile('');
+  };
+
   return (
     <section className="card modern split">
       <div className="stack">
-        <h2>Künstler</h2>
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Name" />
+        <div className="row"><h2>Strategie</h2><button title="Neue Strategie" onClick={create}>＋</button></div>
+        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Strategie-Name" />
         <textarea value={profile} onChange={(e) => setProfile(e.target.value)} placeholder="Profil" rows={3} />
-        <button onClick={() => name.trim() && (onCreateArtist(name, profile), setName(''), setProfile(''))}>Künstler anlegen</button>
+        <button onClick={create}>Strategie anlegen</button>
       </div>
       <div className="stack">
         <h3>Untertabs / Filter</h3>

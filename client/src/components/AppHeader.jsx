@@ -22,7 +22,7 @@ export default function AppHeader({
         <button className={page === 'workspace' ? 'active' : ''} onClick={() => setPage('workspace')}>Workspace</button>
         <button className={page === 'teams' ? 'active' : ''} onClick={() => setPage('teams')}>Gruppen</button>
         <button className={page === 'projects' ? 'active' : ''} onClick={() => setPage('projects')}>Projekte</button>
-        <button className={page === 'artists' ? 'active' : ''} onClick={() => setPage('artists')}>Künstler</button>
+        <button className={page === 'artists' ? 'active' : ''} onClick={() => setPage('artists')}>Strategie</button>
         <button className={page === 'profile' ? 'active' : ''} onClick={() => setPage('profile')}>Profil</button>
       </nav>
 

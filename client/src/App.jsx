@@ -289,6 +289,10 @@ export default function App() {
             const { data } = await apiWithOffline('put', `/todos/${draft._id}`, todoPayload);
             if (data.todo) setTodos((prev) => prev.map((n) => (n._id === draft._id ? data.todo : n)));
           }}
+          onOpenCreateForTab={(currentTab) => {
+            setCreateMode(currentTab === 'notes' ? 'note' : currentTab === 'tasks' ? 'task' : 'todo');
+            setCreateOpen(true);
+          }}
         />
       )}
 

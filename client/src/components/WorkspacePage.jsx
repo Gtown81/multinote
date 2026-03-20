@@ -20,7 +20,7 @@ function RefSelect({ items, value, onChange, label }) {
   );
 }
 
-export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams, projects, artists, activeProjectId, activeArtistId, onDecrypt, onSaveNote, onSaveTask, onSaveTodo }) {
+export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams, projects, artists, activeProjectId, activeArtistId, onDecrypt, onSaveNote, onSaveTask, onSaveTodo, onOpenCreateForTab }) {
   const [selectedId, setSelectedId] = useState('');
   const [draft, setDraft] = useState({});
   const [search, setSearch] = useState('');
@@ -64,6 +64,7 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
           <button className={tab === 'notes' ? 'active' : ''} onClick={() => setTab('notes')}>Notes</button>
           <button className={tab === 'tasks' ? 'active' : ''} onClick={() => setTab('tasks')}>Tasks</button>
           <button className={tab === 'todos' ? 'active' : ''} onClick={() => setTab('todos')}>Todos</button>
+          <button title="Neu im aktuellen Tab" onClick={() => onOpenCreateForTab(tab)}>＋</button>
         </div>
 
         <div className="list">
@@ -87,7 +88,7 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
             <input value={draft.publicInfo || ''} onChange={(e) => setDraft((d) => ({ ...d, publicInfo: e.target.value }))} placeholder="Öffentliche Info" />
             <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorie" />
             <RefSelect items={projects} value={draft.projectId?._id || draft.projectId || ''} onChange={(projectId) => setDraft((d) => ({ ...d, projectId }))} label="Projekt wählen" />
-            <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Künstler wählen" />
+            <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Strategie wählen" />
             <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" />
             <select value={draft.status || 'open'} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}>{STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}</select>
             <textarea value={typeof draft.decryptedPreview === 'string' ? draft.decryptedPreview : '****'} onChange={(e) => setDraft((d) => ({ ...d, decryptedPreview: e.target.value }))} rows={6} readOnly={typeof draft.decryptedPreview !== 'string'} placeholder="Verschlüsselter Inhalt" />
@@ -105,7 +106,7 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
             <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorie" />
             <RefSelect items={projects} value={draft.projectId?._id || draft.projectId || ''} onChange={(projectId) => setDraft((d) => ({ ...d, projectId }))} label="Projekt wählen" />
-            <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Künstler wählen" />
+            <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Strategie wählen" />
             <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags" />
             <select value={draft.status || 'open'} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}>{STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}</select>
             <textarea value={draft.description || ''} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} rows={5} />
@@ -121,7 +122,7 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
             <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorie" />
             <RefSelect items={projects} value={draft.projectId?._id || draft.projectId || ''} onChange={(projectId) => setDraft((d) => ({ ...d, projectId }))} label="Projekt wählen" />
-            <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Künstler wählen" />
+            <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Strategie wählen" />
             <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags" />
             <select value={draft.status || 'open'} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}>{STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}</select>
             <textarea value={draft.details || ''} onChange={(e) => setDraft((d) => ({ ...d, details: e.target.value }))} rows={5} />
