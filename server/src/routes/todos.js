@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { Task } from '../models/Task.js';
+import { Todo } from '../models/Todo.js';
 import { Team } from '../models/Team.js';
 import { authMiddleware } from '../middleware/auth.js';
 
@@ -13,15 +13,13 @@ async function teamIdsForUser(userId) {
 
 router.get('/', async (req, res) => {
   const teamIds = await teamIdsForUser(req.user.sub);
-  const tasks = await Task.find({ $or: [{ owner: req.user.sub }, { team: { $in: teamIds } }] }).sort({ completed: 1, createdAt: -1 });
-  res.json({ tasks });
+  const todos = await Todo.find({ $or: [{ owner: req.user.sub }, { team: { $in: teamIds } }] }).sort({ done: 1, createdAt: -1 });
+  res.json({ todos });
 });
 
 router.post('/', async (req, res) => {
-  const { title, dueDate, priority, assignee, team = null, description = '' } = req.body;
-  if (!title?.trim()) {
-    return res.status(400).json({ message: 'Titel ist Pflicht' });
-  }
+  const { title, details = '', dueDate, team = null } = req.body;
+  if (!title?.trim()) return res.status(400).json({ message: 'Titel ist Pflicht' });
 
   if (team) {
     const t = await Team.findById(team);
@@ -31,36 +29,31 @@ router.post('/', async (req, res) => {
     }
   }
 
-  const task = await Task.create({ owner: req.user.sub, title, dueDate, priority, assignee, team, description });
-  return res.status(201).json({ task });
+  const todo = await Todo.create({ owner: req.user.sub, title, details, dueDate, team });
+  return res.status(201).json({ todo });
 });
 
 router.put('/:id', async (req, res) => {
-  const task = await Task.findById(req.params.id);
-  if (!task) {
-    return res.status(404).json({ message: 'Task nicht gefunden' });
-  }
+  const todo = await Todo.findById(req.params.id);
+  if (!todo) return res.status(404).json({ message: 'Todo nicht gefunden' });
 
-  const isOwner = String(task.owner) === req.user.sub;
+  const isOwner = String(todo.owner) === req.user.sub;
   let canEdit = isOwner;
-  if (!canEdit && task.team) {
-    const team = await Team.findById(task.team);
+  if (!canEdit && todo.team) {
+    const team = await Team.findById(todo.team);
     const member = team?.members.find((m) => String(m.user) === req.user.sub);
     canEdit = Boolean(member && ['owner', 'editor'].includes(member.role));
   }
-
   if (!canEdit) return res.status(403).json({ message: 'Keine Berechtigung' });
 
-  Object.assign(task, req.body);
-  await task.save();
-  return res.json({ task });
+  Object.assign(todo, req.body);
+  await todo.save();
+  return res.json({ todo });
 });
 
 router.delete('/:id', async (req, res) => {
-  const deleted = await Task.findOneAndDelete({ _id: req.params.id, owner: req.user.sub });
-  if (!deleted) {
-    return res.status(404).json({ message: 'Task nicht gefunden' });
-  }
+  const deleted = await Todo.findOneAndDelete({ _id: req.params.id, owner: req.user.sub });
+  if (!deleted) return res.status(404).json({ message: 'Todo nicht gefunden' });
   return res.status(204).send();
 });
 

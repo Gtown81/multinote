@@ -11,6 +11,13 @@ async function resolveAccessibleTeamIds(userId) {
   return teams.map((t) => t._id);
 }
 
+async function canEditTeam(userId, teamId) {
+  if (!teamId) return true;
+  const t = await Team.findById(teamId);
+  const member = t?.members.find((m) => String(m.user) === userId);
+  return Boolean(member && ['owner', 'editor'].includes(member.role));
+}
+
 router.get('/', async (req, res) => {
   const teamIds = await resolveAccessibleTeamIds(req.user.sub);
   const notes = await Note.find({
@@ -20,20 +27,16 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { title, encryptedContent, shared = false, tags = [], team = null } = req.body;
+  const { title, publicInfo = '', encryptedContent, shared = false, tags = [], team = null } = req.body;
   if (!title?.trim()) {
     return res.status(400).json({ message: 'Titel ist Pflicht' });
   }
 
-  if (team) {
-    const t = await Team.findById(team);
-    const member = t?.members.find((m) => String(m.user) === req.user.sub);
-    if (!member || !['owner', 'editor'].includes(member.role)) {
-      return res.status(403).json({ message: 'Keine Berechtigung für dieses Team' });
-    }
+  if (!(await canEditTeam(req.user.sub, team))) {
+    return res.status(403).json({ message: 'Keine Berechtigung für dieses Team' });
   }
 
-  const note = await Note.create({ owner: req.user.sub, title, encryptedContent, shared, tags, team });
+  const note = await Note.create({ owner: req.user.sub, title, publicInfo, encryptedContent, shared, tags, team });
   return res.status(201).json({ note });
 });
 
@@ -53,6 +56,12 @@ router.put('/:id', async (req, res) => {
 
   if (!canEdit) {
     return res.status(403).json({ message: 'Keine Berechtigung' });
+  }
+
+  if (Object.prototype.hasOwnProperty.call(req.body, 'team')) {
+    if (!(await canEditTeam(req.user.sub, req.body.team))) {
+      return res.status(403).json({ message: 'Kein Recht auf Ziel-Team' });
+    }
   }
 
   Object.assign(note, req.body);

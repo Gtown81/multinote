@@ -1,11 +1,26 @@
 import { useEffect, useMemo, useState } from 'react';
 import AuthForm from './components/AuthForm.jsx';
-import NotePanel from './components/NotePanel.jsx';
-import TaskPanel from './components/TaskPanel.jsx';
-import TeamPanel from './components/TeamPanel.jsx';
+import AppHeader from './components/AppHeader.jsx';
+import WorkspacePage from './components/WorkspacePage.jsx';
+import TeamPage from './components/TeamPage.jsx';
+import ProfilePage from './components/ProfilePage.jsx';
+import CreateModal from './components/CreateModal.jsx';
 import { api, setToken } from './services/api.js';
 import { decryptText, encryptText } from './utils/crypto.js';
 import { enqueue, flushQueue, queuedCount } from './services/offlineQueue.js';
+
+function emptyForm() {
+  return { title: '', publicInfo: '', body: '', team: '', file: null };
+}
+
+function fileToBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || '').split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 async function apiWithOffline(method, url, data) {
   try {
@@ -23,37 +38,38 @@ export default function App() {
   const [user, setUser] = useState(null);
   const [notes, setNotes] = useState([]);
   const [tasks, setTasks] = useState([]);
+  const [todos, setTodos] = useState([]);
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [cryptoPassword, setCryptoPassword] = useState('');
   const [queueCount, setQueueCount] = useState(queuedCount());
+  const [page, setPage] = useState('workspace');
+  const [tab, setTab] = useState('notes');
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createMode, setCreateMode] = useState('note');
+  const [form, setForm] = useState(emptyForm());
 
   useEffect(() => {
-    api
-      .get('/auth/me')
-      .then((res) => setUser(res.data.user))
-      .catch(() => setToken(null));
+    api.get('/auth/me').then((res) => setUser(res.data.user)).catch(() => setToken(null));
   }, []);
 
   async function loadData() {
-    const [n, t, teamResult] = await Promise.all([api.get('/notes'), api.get('/tasks'), api.get('/teams')]);
+    const [n, t, td, teamResult] = await Promise.all([api.get('/notes'), api.get('/tasks'), api.get('/todos'), api.get('/teams')]);
     setNotes(n.data.notes);
     setTasks(t.data.tasks);
+    setTodos(td.data.todos);
     setTeams(teamResult.data.teams);
   }
 
   useEffect(() => {
-    if (!user) return;
-    loadData();
+    if (user) loadData();
   }, [user]);
 
   useEffect(() => {
     const handler = async () => {
       const synced = await flushQueue(api);
-      if (synced > 0) {
-        await loadData();
-      }
+      if (synced > 0) await loadData();
       setQueueCount(queuedCount());
     };
     window.addEventListener('online', handler);
@@ -62,24 +78,12 @@ export default function App() {
 
   async function registerPush() {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
-
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') return;
-
     const registration = await navigator.serviceWorker.ready;
     const sub = await registration.pushManager.getSubscription();
-    const subscription =
-      sub ||
-      (await registration.pushManager.subscribe({
-        userVisibleOnly: true,
-        applicationServerKey: import.meta.env.VITE_VAPID_PUBLIC_KEY || undefined
-      }));
-
-    await api.post('/push/subscribe', {
-      endpoint: subscription.endpoint,
-      keys: subscription.toJSON().keys,
-      platform: 'web'
-    });
+    const subscription = sub || (await registration.pushManager.subscribe({ userVisibleOnly: true }));
+    await api.post('/push/subscribe', { endpoint: subscription.endpoint, keys: subscription.toJSON().keys, platform: 'web' });
   }
 
   async function handleAuth(endpoint, payload) {
@@ -96,110 +100,108 @@ export default function App() {
     }
   }
 
+  async function submitCreate() {
+    if (!form.title.trim()) return;
+
+    if (createMode === 'note') {
+      if (!cryptoPassword) {
+        alert('Bitte E2E Passwort setzen. Deine Eingaben bleiben erhalten.');
+        return;
+      }
+      const encryptedContent = await encryptText(form.body || '', cryptoPassword);
+      const { data } = await apiWithOffline('post', '/notes', {
+        title: form.title,
+        publicInfo: form.publicInfo,
+        shared: !!form.team,
+        team: form.team || null,
+        encryptedContent
+      });
+      if (data.note) {
+        if (form.file) {
+          const dataBase64 = await fileToBase64(form.file);
+          const upload = await apiWithOffline('post', `/notes/${data.note._id}/attachments`, {
+            name: form.file.name,
+            mimeType: form.file.type || 'application/octet-stream',
+            size: form.file.size,
+            dataBase64
+          });
+          if (upload.data.note) data.note = upload.data.note;
+        }
+        setNotes((prev) => [data.note, ...prev]);
+      }
+    }
+
+    if (createMode === 'task') {
+      const { data } = await apiWithOffline('post', '/tasks', {
+        title: form.title,
+        description: form.body,
+        team: form.team || null
+      });
+      if (data.task) setTasks((prev) => [data.task, ...prev]);
+    }
+
+    if (createMode === 'todo') {
+      const { data } = await apiWithOffline('post', '/todos', {
+        title: form.title,
+        details: form.body,
+        team: form.team || null
+      });
+      if (data.todo) setTodos((prev) => [data.todo, ...prev]);
+    }
+
+    setQueueCount(queuedCount());
+    setForm(emptyForm());
+    setCreateOpen(false);
+  }
+
   const onlineText = useMemo(() => (navigator.onLine ? 'Online' : 'Offline'), []);
 
   if (!user) {
     return (
       <main className="screen">
         <h1>Atelier Notes</h1>
+        <p className="muted">{onlineText}</p>
         {error && <p className="error">{error}</p>}
-        <AuthForm
-          loading={loading}
-          onLogin={(payload) => handleAuth('login', payload)}
-          onRegister={(payload) => handleAuth('register', payload)}
-        />
+        <AuthForm loading={loading} onLogin={(payload) => handleAuth('login', payload)} onRegister={(payload) => handleAuth('register', payload)} />
       </main>
     );
   }
 
   return (
     <main className="screen">
-      <header className="topbar">
-        <div>
-          <h1>Willkommen, {user.username}</h1>
-          <p>{onlineText} • Offline Queue: {queueCount}</p>
-        </div>
-        <div className="row">
-          <input
-            type="password"
-            placeholder="E2E Passwort"
-            value={cryptoPassword}
-            onChange={(e) => setCryptoPassword(e.target.value)}
-          />
-          <button onClick={registerPush}>Push aktivieren</button>
-          <button
-            onClick={() => {
-              setToken(null);
-              setUser(null);
-            }}
-          >
-            Logout
-          </button>
-        </div>
-      </header>
+      <AppHeader page={page} setPage={setPage} onOpenCreate={() => setCreateOpen(true)} queueCount={queueCount} user={user} />
 
-      <div className="grid">
-        <NotePanel
+      {page === 'workspace' && (
+        <WorkspacePage
+          tab={tab}
+          setTab={setTab}
           notes={notes}
+          tasks={tasks}
+          todos={todos}
           teams={teams}
-          onCreate={async (payload) => {
-            if (!cryptoPassword) return alert('Bitte E2E Passwort setzen');
-            const encryptedContent = await encryptText(payload.plainText || '', cryptoPassword);
-            const { data } = await apiWithOffline('post', '/notes', {
-              title: payload.title,
-              shared: payload.shared,
-              team: payload.team,
-              encryptedContent
-            });
-            if (data.note) setNotes((prev) => [data.note, ...prev]);
-            setQueueCount(queuedCount());
-          }}
           onDecrypt={async (note) => {
             if (!cryptoPassword) return alert('Bitte E2E Passwort setzen');
-            try {
-              const plain = await decryptText(note.encryptedContent, cryptoPassword);
-              setNotes((prev) => prev.map((n) => (n._id === note._id ? { ...n, decryptedPreview: plain } : n)));
-            } catch {
-              alert('Entschlüsselung fehlgeschlagen');
-            }
+            const plain = await decryptText(note.encryptedContent, cryptoPassword).catch(() => null);
+            if (!plain && plain !== '') return alert('Entschlüsselung fehlgeschlagen');
+            setNotes((prev) => prev.map((n) => (n._id === note._id ? { ...n, decryptedPreview: plain } : n)));
           }}
-          onAttach={async (id, file) => {
-            const { data } = await apiWithOffline('post', `/notes/${id}/attachments`, file);
-            if (data.note) setNotes((prev) => prev.map((n) => (n._id === id ? data.note : n)));
-            setQueueCount(queuedCount());
-          }}
-          onUpdate={async (id, patch) => {
+          onUpdateNote={async (id, patch) => {
             const { data } = await apiWithOffline('put', `/notes/${id}`, patch);
             if (data.note) setNotes((prev) => prev.map((n) => (n._id === id ? data.note : n)));
-            setQueueCount(queuedCount());
           }}
-          onDelete={async (id) => {
-            await apiWithOffline('delete', `/notes/${id}`);
-            setNotes((prev) => prev.filter((n) => n._id !== id));
-            setQueueCount(queuedCount());
-          }}
-        />
-
-        <TaskPanel
-          tasks={tasks}
-          onCreate={async (payload) => {
-            const { data } = await apiWithOffline('post', '/tasks', payload);
-            if (data.task) setTasks((prev) => [data.task, ...prev]);
-            setQueueCount(queuedCount());
-          }}
-          onUpdate={async (id, patch) => {
+          onUpdateTask={async (id, patch) => {
             const { data } = await apiWithOffline('put', `/tasks/${id}`, patch);
-            if (data.task) setTasks((prev) => prev.map((t) => (t._id === id ? data.task : t)));
-            setQueueCount(queuedCount());
+            if (data.task) setTasks((prev) => prev.map((n) => (n._id === id ? data.task : n)));
           }}
-          onDelete={async (id) => {
-            await apiWithOffline('delete', `/tasks/${id}`);
-            setTasks((prev) => prev.filter((t) => t._id !== id));
-            setQueueCount(queuedCount());
+          onUpdateTodo={async (id, patch) => {
+            const { data } = await apiWithOffline('put', `/todos/${id}`, patch);
+            if (data.todo) setTodos((prev) => prev.map((n) => (n._id === id ? data.todo : n)));
           }}
         />
+      )}
 
-        <TeamPanel
+      {page === 'teams' && (
+        <TeamPage
           teams={teams}
           onCreateTeam={async (name) => {
             const { data } = await api.post('/teams', { name });
@@ -209,8 +211,40 @@ export default function App() {
             const { data } = await api.post(`/teams/${teamId}/members`, { email, role });
             setTeams((prev) => prev.map((t) => (t._id === teamId ? data.team : t)));
           }}
+          onSetSecurity={async (teamId, ownerEncryptedTeamPassword, memberEncryptedKeys) => {
+            const { data } = await api.post(`/teams/${teamId}/security`, {
+              enabled: true,
+              ownerEncryptedTeamPassword,
+              memberEncryptedKeys
+            });
+            setTeams((prev) => prev.map((t) => (t._id === teamId ? data.team : t)));
+          }}
         />
-      </div>
+      )}
+
+      {page === 'profile' && (
+        <ProfilePage
+          user={user}
+          cryptoPassword={cryptoPassword}
+          setCryptoPassword={setCryptoPassword}
+          onEnablePush={registerPush}
+          onLogout={() => {
+            setToken(null);
+            setUser(null);
+          }}
+        />
+      )}
+
+      <CreateModal
+        open={createOpen}
+        mode={createMode}
+        setMode={setCreateMode}
+        form={form}
+        setForm={setForm}
+        teams={teams}
+        onClose={() => setCreateOpen(false)}
+        onSubmit={submitCreate}
+      />
     </main>
   );
 }

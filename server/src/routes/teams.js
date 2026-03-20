@@ -72,4 +72,23 @@ router.patch('/:id/members/:memberId', async (req, res) => {
   return res.json({ team: populated });
 });
 
+router.post('/:id/security', async (req, res) => {
+  const { enabled = true, ownerEncryptedTeamPassword = '', memberEncryptedKeys = [] } = req.body;
+  const team = await Team.findById(req.params.id);
+  if (!team) return res.status(404).json({ message: 'Team nicht gefunden' });
+
+  const me = team.members.find((m) => String(m.user) === req.user.sub);
+  if (!me || me.role !== 'owner') {
+    return res.status(403).json({ message: 'Nur Owner kann Team-Passwort setzen' });
+  }
+
+  team.security.enabled = enabled;
+  team.security.ownerEncryptedTeamPassword = ownerEncryptedTeamPassword;
+  team.security.memberEncryptedKeys = memberEncryptedKeys;
+  await team.save();
+
+  const populated = await Team.findById(req.params.id).populate('members.user', 'username email');
+  return res.json({ team: populated });
+});
+
 export default router;

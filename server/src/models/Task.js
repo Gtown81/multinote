@@ -3,7 +3,9 @@ import mongoose from 'mongoose';
 const taskSchema = new mongoose.Schema(
   {
     owner: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    team: { type: mongoose.Schema.Types.ObjectId, ref: 'Team', default: null, index: true },
     title: { type: String, required: true, trim: true, maxlength: 160 },
+    description: { type: String, default: '' },
     dueDate: { type: Date },
     completed: { type: Boolean, default: false },
     priority: { type: String, enum: ['low', 'medium', 'high'], default: 'medium' },
