@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 
+const STATUS_OPTIONS = ['open', 'in_progress', 'review', 'done', 'blocked'];
+
 function TeamSelect({ teams, value, onChange }) {
   return (
     <select value={value || ''} onChange={(e) => onChange(e.target.value || null)}>
@@ -9,7 +11,16 @@ function TeamSelect({ teams, value, onChange }) {
   );
 }
 
-export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams, onDecrypt, onSaveNote, onSaveTask, onSaveTodo }) {
+function RefSelect({ items, value, onChange, label }) {
+  return (
+    <select value={value || ''} onChange={(e) => onChange(e.target.value || null)}>
+      <option value="">{label}</option>
+      {items.map((i) => <option key={i._id} value={i._id}>{i.name}</option>)}
+    </select>
+  );
+}
+
+export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams, projects, artists, activeProjectId, activeArtistId, onDecrypt, onSaveNote, onSaveTask, onSaveTodo }) {
   const [selectedId, setSelectedId] = useState('');
   const [draft, setDraft] = useState({});
   const [search, setSearch] = useState('');
@@ -17,15 +28,15 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
   const items = useMemo(() => {
     const base = tab === 'notes' ? notes : tab === 'tasks' ? tasks : todos;
     const q = search.trim().toLowerCase();
-    if (!q) return base;
-    return base.filter((x) =>
-      [x.title, x.publicInfo, x.description, x.details, x.category, x.project, ...(x.tags || [])]
-        .filter(Boolean)
-        .join(' ')
-        .toLowerCase()
-        .includes(q)
-    );
-  }, [tab, notes, tasks, todos, search]);
+    return base.filter((x) => {
+      const matchSearch = !q ||
+        [x.title, x.publicInfo, x.description, x.details, x.category, x.project, ...(x.tags || [])]
+          .filter(Boolean).join(' ').toLowerCase().includes(q);
+      const matchProject = !activeProjectId || x.projectId?._id === activeProjectId || x.projectId === activeProjectId;
+      const matchArtist = !activeArtistId || x.artistId?._id === activeArtistId || x.artistId === activeArtistId;
+      return matchSearch && matchProject && matchArtist;
+    });
+  }, [tab, notes, tasks, todos, search, activeProjectId, activeArtistId]);
 
   useEffect(() => {
     if (!items.length) {
@@ -34,9 +45,7 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
       return;
     }
     const first = items[0];
-    if (!selectedId || !items.some((i) => i._id === selectedId)) {
-      setSelectedId(first._id);
-    }
+    if (!selectedId || !items.some((i) => i._id === selectedId)) setSelectedId(first._id);
   }, [tab, items]);
 
   useEffect(() => {
@@ -61,8 +70,8 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
           {items.map((item) => (
             <button key={item._id} className={`item text-left ${selectedId === item._id ? 'selected' : ''}`} onClick={() => setSelectedId(item._id)}>
               <strong>{item.title}</strong>
+              <p className="muted">Status: {item.status || 'open'} · {item.statusUpdatedBy?.username || '—'} · {item.statusUpdatedAt ? new Date(item.statusUpdatedAt).toLocaleString() : '-'}</p>
               {tab === 'notes' && <p className="muted">{item.publicInfo || 'keine öffentliche Info'} · {(item.encryptedContent?.cipherText ? '****' : '')}</p>}
-              {tab !== 'notes' && <p className="muted">{item.category || '-'} · {item.project || '-'}</p>}
             </button>
           ))}
         </div>
@@ -77,22 +86,14 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} placeholder="Titel" />
             <input value={draft.publicInfo || ''} onChange={(e) => setDraft((d) => ({ ...d, publicInfo: e.target.value }))} placeholder="Öffentliche Info" />
             <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorie" />
-            <input value={draft.project || ''} onChange={(e) => setDraft((d) => ({ ...d, project: e.target.value }))} placeholder="Projekt" />
+            <RefSelect items={projects} value={draft.projectId?._id || draft.projectId || ''} onChange={(projectId) => setDraft((d) => ({ ...d, projectId }))} label="Projekt wählen" />
+            <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Künstler wählen" />
             <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" />
-            <textarea
-              value={typeof draft.decryptedPreview === 'string' ? draft.decryptedPreview : '****'}
-              onChange={(e) => setDraft((d) => ({ ...d, decryptedPreview: e.target.value }))}
-              rows={6}
-              readOnly={typeof draft.decryptedPreview !== 'string'}
-              placeholder="Verschlüsselter Inhalt"
-            />
+            <select value={draft.status || 'open'} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}>{STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}</select>
+            <textarea value={typeof draft.decryptedPreview === 'string' ? draft.decryptedPreview : '****'} onChange={(e) => setDraft((d) => ({ ...d, decryptedPreview: e.target.value }))} rows={6} readOnly={typeof draft.decryptedPreview !== 'string'} placeholder="Verschlüsselter Inhalt" />
             <div className="row">
               <TeamSelect teams={teams} value={draft.team} onChange={(team) => setDraft((d) => ({ ...d, team, shared: !!team }))} />
-              {typeof draft.decryptedPreview === 'string' ? (
-                <button title="Wieder verschlüsselt anzeigen" onClick={() => setDraft((d) => ({ ...d, decryptedPreview: undefined }))}>🙈</button>
-              ) : (
-                <button title="Entschlüsseln" onClick={() => onDecrypt(current)}>🔓</button>
-              )}
+              {typeof draft.decryptedPreview === 'string' ? <button title="Verschlüsselt" onClick={() => setDraft((d) => ({ ...d, decryptedPreview: undefined }))}>🙈</button> : <button title="Entschlüsseln" onClick={() => onDecrypt(current)}>🔓</button>}
               <button title="Speichern" disabled={typeof draft.decryptedPreview !== 'string'} onClick={() => onSaveNote(draft)}>💾</button>
             </div>
           </div>
@@ -103,8 +104,10 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
             <h3>Task bearbeiten</h3>
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
             <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorie" />
-            <input value={draft.project || ''} onChange={(e) => setDraft((d) => ({ ...d, project: e.target.value }))} placeholder="Projekt" />
-            <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" />
+            <RefSelect items={projects} value={draft.projectId?._id || draft.projectId || ''} onChange={(projectId) => setDraft((d) => ({ ...d, projectId }))} label="Projekt wählen" />
+            <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Künstler wählen" />
+            <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags" />
+            <select value={draft.status || 'open'} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}>{STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}</select>
             <textarea value={draft.description || ''} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} rows={5} />
             <label><input type="checkbox" checked={!!draft.completed} onChange={(e) => setDraft((d) => ({ ...d, completed: e.target.checked }))} /> erledigt</label>
             <TeamSelect teams={teams} value={draft.team} onChange={(team) => setDraft((d) => ({ ...d, team }))} />
@@ -117,8 +120,10 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
             <h3>Todo bearbeiten</h3>
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
             <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorie" />
-            <input value={draft.project || ''} onChange={(e) => setDraft((d) => ({ ...d, project: e.target.value }))} placeholder="Projekt" />
-            <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" />
+            <RefSelect items={projects} value={draft.projectId?._id || draft.projectId || ''} onChange={(projectId) => setDraft((d) => ({ ...d, projectId }))} label="Projekt wählen" />
+            <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Künstler wählen" />
+            <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags" />
+            <select value={draft.status || 'open'} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}>{STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}</select>
             <textarea value={draft.details || ''} onChange={(e) => setDraft((d) => ({ ...d, details: e.target.value }))} rows={5} />
             <label><input type="checkbox" checked={!!draft.done} onChange={(e) => setDraft((d) => ({ ...d, done: e.target.checked }))} /> done</label>
             <TeamSelect teams={teams} value={draft.team} onChange={(team) => setDraft((d) => ({ ...d, team }))} />

@@ -13,7 +13,11 @@ async function teamIdsForUser(userId) {
 
 router.get('/', async (req, res) => {
   const teamIds = await teamIdsForUser(req.user.sub);
-  const todos = await Todo.find({ $or: [{ owner: req.user.sub }, { team: { $in: teamIds } }] }).sort({ done: 1, createdAt: -1 });
+  const todos = await Todo.find({ $or: [{ owner: req.user.sub }, { team: { $in: teamIds } }] })
+    .populate('statusUpdatedBy', 'username email')
+    .populate('projectId', 'name')
+    .populate('artistId', 'name')
+    .sort({ done: 1, createdAt: -1 });
   res.json({ todos });
 });
 
@@ -29,7 +33,7 @@ router.post('/', async (req, res) => {
     }
   }
 
-  const todo = await Todo.create({ owner: req.user.sub, title, details, dueDate, team });
+  const todo = await Todo.create({ owner: req.user.sub, title, details, dueDate, team, statusUpdatedBy: req.user.sub, statusUpdatedAt: new Date() });
   return res.status(201).json({ todo });
 });
 
@@ -45,6 +49,11 @@ router.put('/:id', async (req, res) => {
     canEdit = Boolean(member && ['owner', 'editor'].includes(member.role));
   }
   if (!canEdit) return res.status(403).json({ message: 'Keine Berechtigung' });
+
+  if (Object.prototype.hasOwnProperty.call(req.body, 'status')) {
+    req.body.statusUpdatedBy = req.user.sub;
+    req.body.statusUpdatedAt = new Date();
+  }
 
   Object.assign(todo, req.body);
   await todo.save();

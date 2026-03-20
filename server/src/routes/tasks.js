@@ -13,7 +13,11 @@ async function teamIdsForUser(userId) {
 
 router.get('/', async (req, res) => {
   const teamIds = await teamIdsForUser(req.user.sub);
-  const tasks = await Task.find({ $or: [{ owner: req.user.sub }, { team: { $in: teamIds } }] }).sort({ completed: 1, createdAt: -1 });
+  const tasks = await Task.find({ $or: [{ owner: req.user.sub }, { team: { $in: teamIds } }] })
+    .populate('statusUpdatedBy', 'username email')
+    .populate('projectId', 'name')
+    .populate('artistId', 'name')
+    .sort({ completed: 1, createdAt: -1 });
   res.json({ tasks });
 });
 
@@ -31,7 +35,7 @@ router.post('/', async (req, res) => {
     }
   }
 
-  const task = await Task.create({ owner: req.user.sub, title, dueDate, priority, assignee, team, description });
+  const task = await Task.create({ owner: req.user.sub, title, dueDate, priority, assignee, team, description, statusUpdatedBy: req.user.sub, statusUpdatedAt: new Date() });
   return res.status(201).json({ task });
 });
 
@@ -50,6 +54,11 @@ router.put('/:id', async (req, res) => {
   }
 
   if (!canEdit) return res.status(403).json({ message: 'Keine Berechtigung' });
+
+  if (Object.prototype.hasOwnProperty.call(req.body, 'status')) {
+    req.body.statusUpdatedBy = req.user.sub;
+    req.body.statusUpdatedAt = new Date();
+  }
 
   Object.assign(task, req.body);
   await task.save();

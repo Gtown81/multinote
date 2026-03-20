@@ -8,8 +8,13 @@ const todoSchema = new mongoose.Schema(
     tags: [{ type: String, trim: true, maxlength: 40 }],
     category: { type: String, default: '', trim: true, maxlength: 80 },
     project: { type: String, default: '', trim: true, maxlength: 120 },
+    projectId: { type: mongoose.Schema.Types.ObjectId, ref: 'Project', default: null, index: true },
+    artistId: { type: mongoose.Schema.Types.ObjectId, ref: 'Artist', default: null, index: true },
     details: { type: String, default: '' },
     done: { type: Boolean, default: false },
+    status: { type: String, default: 'open', enum: ['open', 'in_progress', 'review', 'done', 'blocked'] },
+    statusUpdatedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    statusUpdatedAt: { type: Date, default: null },
     dueDate: { type: Date }
   },
   { timestamps: true }

@@ -4,13 +4,15 @@ import AppHeader from './components/AppHeader.jsx';
 import WorkspacePage from './components/WorkspacePage.jsx';
 import TeamPage from './components/TeamPage.jsx';
 import ProfilePage from './components/ProfilePage.jsx';
+import ProjectsPage from './components/ProjectsPage.jsx';
+import ArtistsPage from './components/ArtistsPage.jsx';
 import CreateModal from './components/CreateModal.jsx';
 import { api, setToken } from './services/api.js';
 import { decryptText, encryptText } from './utils/crypto.js';
 import { enqueue, flushQueue, queuedCount } from './services/offlineQueue.js';
 
 function emptyForm() {
-  return { title: '', publicInfo: '', body: '', team: '', file: null, tags: '', category: '', project: '' };
+  return { title: '', publicInfo: '', body: '', team: '', file: null, tags: '', category: '', project: '', projectId: '', artistId: '' };
 }
 
 function fileToBase64(file) {
@@ -40,6 +42,10 @@ export default function App() {
   const [tasks, setTasks] = useState([]);
   const [todos, setTodos] = useState([]);
   const [teams, setTeams] = useState([]);
+  const [projects, setProjects] = useState([]);
+  const [artists, setArtists] = useState([]);
+  const [activeProjectId, setActiveProjectId] = useState('');
+  const [activeArtistId, setActiveArtistId] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [cryptoPassword, setCryptoPassword] = useState(localStorage.getItem('atelier_crypto_pw') || '');
@@ -64,11 +70,13 @@ export default function App() {
   }, []);
 
   async function loadData() {
-    const [n, t, td, teamResult] = await Promise.all([api.get('/notes'), api.get('/tasks'), api.get('/todos'), api.get('/teams')]);
+    const [n, t, td, teamResult, projectResult, artistResult] = await Promise.all([api.get('/notes'), api.get('/tasks'), api.get('/todos'), api.get('/teams'), api.get('/projects'), api.get('/artists')]);
     setNotes(n.data.notes);
     setTasks(t.data.tasks);
     setTodos(td.data.todos);
     setTeams(teamResult.data.teams);
+    setProjects(projectResult.data.projects);
+    setArtists(artistResult.data.artists);
   }
 
   useEffect(() => {
@@ -164,6 +172,8 @@ export default function App() {
         tags: form.tags.split(',').map((x) => x.trim()).filter(Boolean),
         category: form.category || '',
         project: form.project || '',
+        projectId: form.projectId || null,
+        artistId: form.artistId || null,
         encryptedContent
       });
       if (data.note) {
@@ -188,7 +198,9 @@ export default function App() {
         team: form.team || null,
         tags: form.tags.split(',').map((x) => x.trim()).filter(Boolean),
         category: form.category || '',
-        project: form.project || ''
+        project: form.project || '',
+        projectId: form.projectId || null,
+        artistId: form.artistId || null
       });
       if (data.task) setTasks((prev) => [data.task, ...prev]);
     }
@@ -200,7 +212,9 @@ export default function App() {
         team: form.team || null,
         tags: form.tags.split(',').map((x) => x.trim()).filter(Boolean),
         category: form.category || '',
-        project: form.project || ''
+        project: form.project || '',
+        projectId: form.projectId || null,
+        artistId: form.artistId || null
       });
       if (data.todo) setTodos((prev) => [data.todo, ...prev]);
     }
@@ -235,6 +249,10 @@ export default function App() {
           tasks={tasks}
           todos={todos}
           teams={teams}
+          projects={projects}
+          artists={artists}
+          activeProjectId={activeProjectId}
+          activeArtistId={activeArtistId}
           onDecrypt={async (note) => {
             if (!cryptoPassword) return alert('Bitte E2E Passwort setzen');
             const plain = await decryptText(note.encryptedContent, cryptoPassword).catch(() => null);
@@ -255,17 +273,19 @@ export default function App() {
               tags: Array.isArray(draft.tags) ? draft.tags : String(draft.tags || '').split(',').map((x) => x.trim()).filter(Boolean),
               category: draft.category || '',
               project: draft.project || '',
+              projectId: draft.projectId?._id || draft.projectId || null,
+              artistId: draft.artistId?._id || draft.artistId || null,
               encryptedContent
             });
             if (data.note) setNotes((prev) => prev.map((n) => (n._id === draft._id ? data.note : n)));
           }}
           onSaveTask={async (draft) => {
-            const taskPayload = { ...draft, tags: Array.isArray(draft.tags) ? draft.tags : String(draft.tags || '').split(',').map((x) => x.trim()).filter(Boolean) };
+            const taskPayload = { ...draft, projectId: draft.projectId?._id || draft.projectId || null, artistId: draft.artistId?._id || draft.artistId || null, tags: Array.isArray(draft.tags) ? draft.tags : String(draft.tags || '').split(',').map((x) => x.trim()).filter(Boolean) };
             const { data } = await apiWithOffline('put', `/tasks/${draft._id}`, taskPayload);
             if (data.task) setTasks((prev) => prev.map((n) => (n._id === draft._id ? data.task : n)));
           }}
           onSaveTodo={async (draft) => {
-            const todoPayload = { ...draft, tags: Array.isArray(draft.tags) ? draft.tags : String(draft.tags || '').split(',').map((x) => x.trim()).filter(Boolean) };
+            const todoPayload = { ...draft, projectId: draft.projectId?._id || draft.projectId || null, artistId: draft.artistId?._id || draft.artistId || null, tags: Array.isArray(draft.tags) ? draft.tags : String(draft.tags || '').split(',').map((x) => x.trim()).filter(Boolean) };
             const { data } = await apiWithOffline('put', `/todos/${draft._id}`, todoPayload);
             if (data.todo) setTodos((prev) => prev.map((n) => (n._id === draft._id ? data.todo : n)));
           }}
@@ -275,6 +295,10 @@ export default function App() {
       {page === 'teams' && (
         <TeamPage
           teams={teams}
+          projects={projects}
+          artists={artists}
+          activeProjectId={activeProjectId}
+          activeArtistId={activeArtistId}
           onCreateTeam={async (name, groupPassword) => {
             const ownerEncryptedTeamPassword = await encryptGroupPassword(groupPassword, user.email);
             const { data } = await api.post('/teams', {
@@ -303,6 +327,32 @@ export default function App() {
         />
       )}
 
+
+      {page === 'projects' && (
+        <ProjectsPage
+          projects={projects}
+          activeProjectId={activeProjectId}
+          setActiveProjectId={setActiveProjectId}
+          onCreateProject={async (name, description) => {
+            const { data } = await api.post('/projects', { name, description });
+            setProjects((prev) => [data.project, ...prev]);
+            setActiveProjectId(data.project._id);
+          }}
+        />
+      )}
+
+      {page === 'artists' && (
+        <ArtistsPage
+          artists={artists}
+          activeArtistId={activeArtistId}
+          setActiveArtistId={setActiveArtistId}
+          onCreateArtist={async (name, profile) => {
+            const { data } = await api.post('/artists', { name, profile });
+            setArtists((prev) => [data.artist, ...prev]);
+            setActiveArtistId(data.artist._id);
+          }}
+        />
+      )}
       {page === 'profile' && (
         <ProfilePage
           user={user}
@@ -323,6 +373,8 @@ export default function App() {
         form={form}
         setForm={setForm}
         teams={teams}
+        projects={projects}
+        artists={artists}
         onClose={() => setCreateOpen(false)}
         onSubmit={submitCreate}
       />

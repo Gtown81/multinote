@@ -9,6 +9,8 @@ import taskRoutes from './routes/tasks.js';
 import todoRoutes from './routes/todos.js';
 import teamRoutes from './routes/teams.js';
 import pushRoutes from './routes/push.js';
+import projectsRoutes from './routes/projects.js';
+import artistsRoutes from './routes/artists.js';
 
 const app = express();
 const port = process.env.PORT || 4000;
@@ -28,6 +30,8 @@ app.use('/api/tasks', taskRoutes);
 app.use('/api/todos', todoRoutes);
 app.use('/api/teams', teamRoutes);
 app.use('/api/push', pushRoutes);
+app.use('/api/projects', projectsRoutes);
+app.use('/api/artists', artistsRoutes);
 
 app.use((err, _req, res, _next) => {
   console.error(err);

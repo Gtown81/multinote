@@ -22,7 +22,11 @@ router.get('/', async (req, res) => {
   const teamIds = await resolveAccessibleTeamIds(req.user.sub);
   const notes = await Note.find({
     $or: [{ owner: req.user.sub }, { team: { $in: teamIds } }]
-  }).sort({ updatedAt: -1 });
+  })
+    .populate('statusUpdatedBy', 'username email')
+    .populate('projectId', 'name')
+    .populate('artistId', 'name')
+    .sort({ updatedAt: -1 });
   res.json({ notes });
 });
 
@@ -37,7 +41,7 @@ router.post('/', async (req, res) => {
   }
 
   const effectiveShared = team ? true : shared;
-  const note = await Note.create({ owner: req.user.sub, title, publicInfo, encryptedContent, shared: effectiveShared, tags, team });
+  const note = await Note.create({ owner: req.user.sub, title, publicInfo, encryptedContent, shared: effectiveShared, tags, team, statusUpdatedBy: req.user.sub, statusUpdatedAt: new Date() });
   return res.status(201).json({ note });
 });
 
@@ -68,6 +72,12 @@ router.put('/:id', async (req, res) => {
 
   if (Object.prototype.hasOwnProperty.call(req.body, 'team')) {
     req.body.shared = !!req.body.team;
+  }
+
+
+  if (Object.prototype.hasOwnProperty.call(req.body, 'status')) {
+    req.body.statusUpdatedBy = req.user.sub;
+    req.body.statusUpdatedAt = new Date();
   }
 
   Object.assign(note, req.body);

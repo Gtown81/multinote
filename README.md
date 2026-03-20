@@ -7,6 +7,9 @@
 - Auto-Entschlüsseln: Checkbox **Alle auto entschlüsseln** im Header
 - Suche oberhalb der Tabs über Notes/Tasks/Todos inkl. Tags/Kategorie/Projekt
 - Tags, Kategorie und Projekt für Notes/Tasks/Todos
+- Status je Note/Task/Todo inkl. "wer und wann zuletzt geändert"
+- Tab **Projekte** mit eigenen Untertabs/Filtern
+- Tab **Künstler** mit eigenen Untertabs/Filtern
 - Globaler **+ Button** für neue Note/Task/Todo (mit Team-Zuweisung)
 - Notes haben:
   - verschlüsselten Inhalt (E2E)
