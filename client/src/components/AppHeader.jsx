@@ -31,21 +31,22 @@ export default function AppHeader({
           value={cryptoPassword}
           onChange={(e) => setCryptoPassword(e.target.value)}
         />
-        <label className="remember">
-          <input
-            type="checkbox"
-            checked={rememberCrypto}
-            onChange={(e) => setRememberCrypto(e.target.checked)}
-          />
-          Im Browser speichern
-        </label>
-        <label className="remember">
-          <input type="checkbox" checked={autoDecryptAll} onChange={(e) => setAutoDecryptAll(e.target.checked)} />
-          Alle auto entschlüsseln
-        </label>
+        <div className="toggle-row">
+          <label className="remember compact">
+            <input
+              type="checkbox"
+              checked={rememberCrypto}
+              onChange={(e) => setRememberCrypto(e.target.checked)}
+            />
+            Speichern
+          </label>
+          <label className="remember compact">
+            <input type="checkbox" checked={autoDecryptAll} onChange={(e) => setAutoDecryptAll(e.target.checked)} />
+            Auto
+          </label>
+          <button className="fab-small" onClick={onOpenCreate}>＋</button>
+        </div>
       </div>
-
-      <button className="fab-small" onClick={onOpenCreate}>＋</button>
     </header>
   );
 }

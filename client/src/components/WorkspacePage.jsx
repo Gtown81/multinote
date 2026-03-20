@@ -79,12 +79,20 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
             <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorie" />
             <input value={draft.project || ''} onChange={(e) => setDraft((d) => ({ ...d, project: e.target.value }))} placeholder="Projekt" />
             <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" />
-            <textarea value={draft.decryptedPreview || ''} onChange={(e) => setDraft((d) => ({ ...d, decryptedPreview: e.target.value }))} rows={6} placeholder="Verschlüsselter Inhalt (nach Entschlüsseln bearbeitbar)" />
-            {typeof draft.decryptedPreview !== 'string' && <p className="muted">**** · Zum Speichern zuerst auf 🔓 klicken.</p>}
+            <textarea
+              value={typeof draft.decryptedPreview === 'string' ? draft.decryptedPreview : '****'}
+              onChange={(e) => setDraft((d) => ({ ...d, decryptedPreview: e.target.value }))}
+              rows={6}
+              readOnly={typeof draft.decryptedPreview !== 'string'}
+              placeholder="Verschlüsselter Inhalt"
+            />
             <div className="row">
               <TeamSelect teams={teams} value={draft.team} onChange={(team) => setDraft((d) => ({ ...d, team, shared: !!team }))} />
-              <button title="Entschlüsseln" onClick={() => onDecrypt(current)}>🔓</button>
-              <button title="Verschlüsselt anzeigen" onClick={() => setDraft((d) => ({ ...d, decryptedPreview: undefined }))}>🔒</button>
+              {typeof draft.decryptedPreview === 'string' ? (
+                <button title="Wieder verschlüsselt anzeigen" onClick={() => setDraft((d) => ({ ...d, decryptedPreview: undefined }))}>🙈</button>
+              ) : (
+                <button title="Entschlüsseln" onClick={() => onDecrypt(current)}>🔓</button>
+              )}
               <button title="Speichern" disabled={typeof draft.decryptedPreview !== 'string'} onClick={() => onSaveNote(draft)}>💾</button>
             </div>
           </div>
