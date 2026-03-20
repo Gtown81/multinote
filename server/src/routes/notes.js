@@ -36,7 +36,8 @@ router.post('/', async (req, res) => {
     return res.status(403).json({ message: 'Keine Berechtigung für dieses Team' });
   }
 
-  const note = await Note.create({ owner: req.user.sub, title, publicInfo, encryptedContent, shared, tags, team });
+  const effectiveShared = team ? true : shared;
+  const note = await Note.create({ owner: req.user.sub, title, publicInfo, encryptedContent, shared: effectiveShared, tags, team });
   return res.status(201).json({ note });
 });
 
@@ -62,6 +63,11 @@ router.put('/:id', async (req, res) => {
     if (!(await canEditTeam(req.user.sub, req.body.team))) {
       return res.status(403).json({ message: 'Kein Recht auf Ziel-Team' });
     }
+  }
+
+
+  if (Object.prototype.hasOwnProperty.call(req.body, 'team')) {
+    req.body.shared = !!req.body.team;
   }
 
   Object.assign(note, req.body);

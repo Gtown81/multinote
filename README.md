@@ -59,3 +59,11 @@ cp .env.example .env
 npm install
 npm run dev
 ```
+
+## Team-Zuweisung bei bestehenden Notizen
+- Wenn du eine bestehende Notiz in der Note-Ansicht auf ein Team setzt und speicherst, wird sie automatisch als `shared=true` markiert.
+- Alle Mitglieder dieses Teams können die Notiz danach über ihre normale Notizliste sehen (Leserechte über Teammitgliedschaft).
+
+## Speichern von erstellten Notizen
+- Erstellte/verschlüsselte Notizen können nur gespeichert werden, wenn sie zuvor entschlüsselt/geöffnet wurden.
+- In der UI: erst auf **Öffnen** klicken, dann bearbeiten, dann **Speichern**.

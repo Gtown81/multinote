@@ -63,10 +63,11 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, teams,
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} placeholder="Titel" />
             <input value={draft.publicInfo || ''} onChange={(e) => setDraft((d) => ({ ...d, publicInfo: e.target.value }))} placeholder="Öffentliche Info" />
             <textarea value={draft.decryptedPreview || ''} onChange={(e) => setDraft((d) => ({ ...d, decryptedPreview: e.target.value }))} rows={6} placeholder="Verschlüsselter Inhalt (nach Entschlüsseln bearbeitbar)" />
+            {typeof draft.decryptedPreview !== 'string' && <p className="muted">Zum Speichern zuerst auf "Öffnen" klicken (entschlüsseln).</p>}
             <div className="row">
               <TeamSelect teams={teams} value={draft.team} onChange={(team) => setDraft((d) => ({ ...d, team, shared: !!team }))} />
               <button onClick={() => onDecrypt(current)}>Öffnen</button>
-              <button onClick={() => onSaveNote(draft)}>Speichern</button>
+              <button disabled={typeof draft.decryptedPreview !== 'string'} onClick={() => onSaveNote(draft)}>Speichern</button>
             </div>
           </div>
         )}

@@ -229,7 +229,10 @@ export default function App() {
           }}
           onSaveNote={async (draft) => {
             if (!cryptoPassword) return alert('E2E Passwort fehlt');
-            const encryptedContent = await encryptText(draft.decryptedPreview || '', cryptoPassword);
+            if (typeof draft.decryptedPreview !== 'string') {
+              return alert('Bitte Notiz zuerst öffnen/entschlüsseln. Speichern ist nur im unverschlüsselten Zustand erlaubt.');
+            }
+            const encryptedContent = await encryptText(draft.decryptedPreview, cryptoPassword);
             const { data } = await apiWithOffline('put', `/notes/${draft._id}`, {
               title: draft.title,
               publicInfo: draft.publicInfo || '',
