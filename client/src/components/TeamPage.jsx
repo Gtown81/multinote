@@ -1,62 +1,67 @@
 import { useEffect, useState } from 'react';
 
 export default function TeamPage({ teams, onCreateTeam, onInvite, onSaveTeam, onSetSecurity }) {
-  const [teamName, setTeamName] = useState('');
+  const [newGroupName, setNewGroupName] = useState('');
   const [groupPassword, setGroupPassword] = useState('');
-  const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [selectedGroupId, setSelectedGroupId] = useState('');
   const [draft, setDraft] = useState(null);
   const [inviteEmail, setInviteEmail] = useState('');
   const [inviteRole, setInviteRole] = useState('viewer');
 
   useEffect(() => {
     if (!teams.length) return;
-    if (!selectedTeamId) setSelectedTeamId(teams[0]._id);
+    if (!selectedGroupId || !teams.some((g) => g._id === selectedGroupId)) {
+      setSelectedGroupId(teams[0]._id);
+    }
   }, [teams]);
 
   useEffect(() => {
-    const t = teams.find((x) => x._id === selectedTeamId);
-    setDraft(t || null);
-  }, [selectedTeamId, teams]);
+    const group = teams.find((x) => x._id === selectedGroupId);
+    setDraft(group || null);
+  }, [selectedGroupId, teams]);
 
   return (
-    <section className="card modern split">
+    <section className="card modern split teams-ui">
       <div className="stack">
-        <h2>Teams</h2>
-        <input value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Neues Team" />
-        <input value={groupPassword} onChange={(e) => setGroupPassword(e.target.value)} placeholder="Gruppenpasswort (optional)" />
+        <h2>Gruppen verwalten</h2>
+        <input value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="Neue Gruppe" />
+        <input value={groupPassword} onChange={(e) => setGroupPassword(e.target.value)} placeholder="Gruppenpasswort optional" />
         <button
           onClick={() => {
-            if (!teamName.trim()) return;
-            onCreateTeam(teamName, groupPassword);
-            setTeamName('');
-            setGroupPassword('');
+            if (!newGroupName.trim()) return;
+            onCreateTeam(newGroupName, groupPassword);
+            setNewGroupName('');
           }}
         >
-          Team erstellen
+          Gruppe erstellen
         </button>
 
         <div className="list">
-          {teams.map((team) => (
-            <button className={`item text-left ${selectedTeamId === team._id ? 'selected' : ''}`} key={team._id} onClick={() => setSelectedTeamId(team._id)}>
-              <strong>{team.name}</strong>
-              <p className="muted">{team.members?.length || 0} Mitglieder</p>
+          {teams.map((group) => (
+            <button
+              className={`item text-left ${selectedGroupId === group._id ? 'selected' : ''}`}
+              key={group._id}
+              onClick={() => setSelectedGroupId(group._id)}
+            >
+              <strong>{group.name}</strong>
+              <p className="muted">{group.members?.length || 0} Mitglieder</p>
             </button>
           ))}
         </div>
       </div>
 
       <div className="editor stack">
-        {!draft && <p className="muted">Wähle ein Team.</p>}
+        {!draft && <p className="muted">Wähle links eine Gruppe aus.</p>}
         {draft && (
           <>
-            <h3>Team öffnen & bearbeiten</h3>
+            <h3>Gruppe bearbeiten</h3>
             <input value={draft.name || ''} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} />
             <button onClick={() => onSaveTeam(draft._id, draft.name)}>Name speichern</button>
 
-            <h4>Gruppenpasswort setzen/ändern</h4>
-            <input value={groupPassword} onChange={(e) => setGroupPassword(e.target.value)} placeholder="Neues Gruppenpasswort" />
-            <button onClick={() => onSetSecurity(draft._id, groupPassword)}>Gruppenpasswort speichern</button>
-            <p className="muted">Beim Einladen wird das Gruppenpasswort automatisch verschlüsselt für das Mitglied geteilt.</p>
+            <h4>Sicherheit</h4>
+            <input value={groupPassword} onChange={(e) => setGroupPassword(e.target.value)} placeholder="Gruppenpasswort setzen/ändern" />
+            <button onClick={() => onSetSecurity(draft._id, groupPassword)}>Passwort speichern</button>
+            <p className="muted">Beim Einladen teilen wir das Gruppenpasswort verschlüsselt mit.</p>
 
             <h4>Mitglied einladen</h4>
             <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="E-Mail" />
@@ -65,15 +70,7 @@ export default function TeamPage({ teams, onCreateTeam, onInvite, onSaveTeam, on
               <option value="editor">Editor</option>
               <option value="owner">Owner</option>
             </select>
-            <button
-              onClick={() => {
-                if (!inviteEmail) return;
-                onInvite(draft._id, inviteEmail, inviteRole, groupPassword);
-                setInviteEmail('');
-              }}
-            >
-              Einladen
-            </button>
+            <button onClick={() => inviteEmail && onInvite(draft._id, inviteEmail, inviteRole, groupPassword)}>Einladen</button>
 
             <ul>
               {(draft.members || []).map((m) => (

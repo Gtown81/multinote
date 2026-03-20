@@ -2,6 +2,7 @@
 
 ## Was jetzt funktioniert
 - Seiten im Header: **Workspace**, **Teams**, **Profil**
+- Oben im Header: E2E Passwort-Feld + Checkbox „Im Browser speichern“ für automatisches Entschlüsseln
 - Workspace mit Tabs: **Notes / Tasks / Todos**
 - Globaler **+ Button** für neue Note/Task/Todo (mit Team-Zuweisung)
 - Notes haben:

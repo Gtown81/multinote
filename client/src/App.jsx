@@ -42,13 +42,21 @@ export default function App() {
   const [teams, setTeams] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [cryptoPassword, setCryptoPassword] = useState('');
+  const [cryptoPassword, setCryptoPassword] = useState(localStorage.getItem('atelier_crypto_pw') || '');
+  const [rememberCrypto, setRememberCrypto] = useState(localStorage.getItem('atelier_crypto_remember') === '1');
   const [queueCount, setQueueCount] = useState(queuedCount());
   const [page, setPage] = useState('workspace');
   const [tab, setTab] = useState('notes');
   const [createOpen, setCreateOpen] = useState(false);
   const [createMode, setCreateMode] = useState('note');
   const [form, setForm] = useState(emptyForm());
+
+  function upsertTeam(team) {
+    setTeams((prev) => {
+      const filtered = prev.filter((t) => t._id !== team._id);
+      return [team, ...filtered];
+    });
+  }
 
   useEffect(() => {
     api.get('/auth/me').then((res) => setUser(res.data.user)).catch(() => setToken(null));
@@ -75,6 +83,32 @@ export default function App() {
     window.addEventListener('online', handler);
     return () => window.removeEventListener('online', handler);
   }, [user]);
+
+
+  useEffect(() => {
+    if (!cryptoPassword || !notes.length) return;
+    Promise.all(
+      notes.map(async (n) => {
+        try {
+          const plain = await decryptText(n.encryptedContent, cryptoPassword);
+          return { ...n, decryptedPreview: plain };
+        } catch {
+          return n;
+        }
+      })
+    ).then((resolved) => setNotes(resolved));
+  }, [cryptoPassword, notes.length]);
+
+
+  useEffect(() => {
+    if (rememberCrypto && cryptoPassword) {
+      localStorage.setItem('atelier_crypto_pw', cryptoPassword);
+      localStorage.setItem('atelier_crypto_remember', '1');
+    } else {
+      localStorage.removeItem('atelier_crypto_pw');
+      localStorage.setItem('atelier_crypto_remember', rememberCrypto ? '1' : '0');
+    }
+  }, [rememberCrypto, cryptoPassword]);
 
   async function registerPush() {
     if (!('Notification' in window) || !('serviceWorker' in navigator)) return;
@@ -177,7 +211,7 @@ export default function App() {
 
   return (
     <main className="screen">
-      <AppHeader page={page} setPage={setPage} onOpenCreate={() => setCreateOpen(true)} queueCount={queueCount} user={user} />
+      <AppHeader page={page} setPage={setPage} onOpenCreate={() => setCreateOpen(true)} queueCount={queueCount} user={user} cryptoPassword={cryptoPassword} setCryptoPassword={setCryptoPassword} rememberCrypto={rememberCrypto} setRememberCrypto={setRememberCrypto} />
 
       {page === 'workspace' && (
         <WorkspacePage
@@ -225,11 +259,11 @@ export default function App() {
               name,
               security: groupPassword ? { enabled: true, ownerEncryptedTeamPassword, memberEncryptedKeys: [] } : undefined
             });
-            setTeams((prev) => [data.team, ...prev]);
+            upsertTeam(data.team)
           }}
           onSaveTeam={async (teamId, name) => {
             const { data } = await api.put(`/teams/${teamId}`, { name });
-            setTeams((prev) => prev.map((t) => (t._id === teamId ? data.team : t)));
+            upsertTeam(data.team)
           }}
           onSetSecurity={async (teamId, groupPassword) => {
             const ownerEncryptedTeamPassword = await encryptGroupPassword(groupPassword, user.email);
@@ -237,12 +271,12 @@ export default function App() {
               enabled: !!groupPassword,
               ownerEncryptedTeamPassword
             });
-            setTeams((prev) => prev.map((t) => (t._id === teamId ? data.team : t)));
+            upsertTeam(data.team)
           }}
           onInvite={async (teamId, email, role, groupPassword) => {
             const encryptedGroupKey = await encryptGroupPassword(groupPassword, email.toLowerCase());
             const { data } = await api.post(`/teams/${teamId}/members`, { email, role, encryptedGroupKey });
-            setTeams((prev) => prev.map((t) => (t._id === teamId ? data.team : t)));
+            upsertTeam(data.team)
           }}
         />
       )}
