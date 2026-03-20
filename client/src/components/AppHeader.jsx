@@ -19,9 +19,9 @@ export default function AppHeader({
       </div>
 
       <nav className="nav-tabs">
-        <button className={page === 'workspace' ? 'active' : ''} onClick={() => setPage('workspace')}>Workspace</button>
-        <button className={page === 'teams' ? 'active' : ''} onClick={() => setPage('teams')}>Gruppen</button>
-        <button className={page === 'profile' ? 'active' : ''} onClick={() => setPage('profile')}>Profil</button>
+        <button className={`icon-tab ${page === 'workspace' ? 'active' : ''}`} onClick={() => setPage('workspace')} title="Workspace" aria-label="Workspace">🗂️</button>
+        <button className={`icon-tab ${page === 'teams' ? 'active' : ''}`} onClick={() => setPage('teams')} title="Gruppen" aria-label="Gruppen">👥</button>
+        <button className={`icon-tab ${page === 'profile' ? 'active' : ''}`} onClick={() => setPage('profile')} title="Profil" aria-label="Profil">👤</button>
       </nav>
 
       <div className="crypto-box">

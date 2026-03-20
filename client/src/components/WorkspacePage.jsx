@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 
 const STATUS_OPTIONS = ['open', 'in_progress', 'review', 'done', 'blocked'];
 const TOP_TABS = ['notes', 'tasks', 'todos', 'projects', 'artists'];
+const TAB_ICONS = { notes: '📝', tasks: '✅', todos: '📌', projects: '📁', artists: '🎯' };
+const TAB_LABELS = { notes: 'Notes', tasks: 'Tasks', todos: 'Todos', projects: 'Projekte', artists: 'Strategie' };
 
 function TeamSelect({ teams, value, onChange }) {
   return (
@@ -75,7 +77,9 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
         <input className="search" placeholder="Suche..." value={search} onChange={(e) => setSearch(e.target.value)} />
         <div className="segmented">
           {TOP_TABS.map((t) => (
-            <button key={t} className={tab === t ? 'active' : ''} onClick={() => setTab(t)}>{t === 'artists' ? 'Strategie' : t.charAt(0).toUpperCase() + t.slice(1)}</button>
+            <button key={t} className={`icon-tab ${tab === t ? 'active' : ''}`} onClick={() => setTab(t)} title={TAB_LABELS[t]} aria-label={TAB_LABELS[t]}>
+              {TAB_ICONS[t]}
+            </button>
           ))}
           <button title="Neu im aktuellen Tab" onClick={() => onOpenCreateForTab(tab)}>＋</button>
         </div>
