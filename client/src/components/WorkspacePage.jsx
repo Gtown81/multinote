@@ -70,6 +70,16 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
     const id = getRefId(value);
     return source.find((x) => x._id === id)?.name || '';
   };
+  const getTeamName = (value) => {
+    if (!value) return '';
+    if (typeof value === 'object' && value.name) return value.name;
+    const id = getRefId(value);
+    return teams.find((t) => t._id === id)?.name || '';
+  };
+  const toList = (value) => {
+    if (Array.isArray(value)) return value.map((v) => String(v).trim()).filter(Boolean);
+    return String(value || '').split(',').map((v) => v.trim()).filter(Boolean);
+  };
 
   return (
     <section className="card modern split">
@@ -109,14 +119,22 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
               {tab === 'notes' && (
                 <>
                   {item.publicInfo && <p className="muted">{item.publicInfo}</p>}
-                  <p className="muted">
-                    {typeof item.decryptedPreview === 'string' ? '🔓 Entschlüsselt' : '🔒 Verschlüsselt'}
-                    {getRefName(item.projectId, projects) ? ` · 📁 ${getRefName(item.projectId, projects)}` : ''}
-                    {getRefName(item.artistId, artists) ? ` · 🎯 ${getRefName(item.artistId, artists)}` : ''}
-                  </p>
+                  <div className="item-meta">
+                    <span>{typeof item.decryptedPreview === 'string' ? '🔓 Entschlüsselt' : '🔒 Verschlüsselt'}</span>
+                    {getRefName(item.projectId, projects) && <span>📁 {getRefName(item.projectId, projects)}</span>}
+                    {getRefName(item.artistId, artists) && <span>🎯 {getRefName(item.artistId, artists)}</span>}
+                    {getTeamName(item.team) && <span>👥 {getTeamName(item.team)}</span>}
+                  </div>
                 </>
               )}
-              {tab !== 'notes' && tab !== 'projects' && tab !== 'artists' && <p className="muted">Status: {item.status || 'open'}</p>}
+              {tab !== 'notes' && tab !== 'projects' && tab !== 'artists' && (
+                <div className="item-meta">
+                  <span>📌 {item.status || 'open'}</span>
+                  {getRefName(item.projectId, projects) && <span>📁 {getRefName(item.projectId, projects)}</span>}
+                  {getRefName(item.artistId, artists) && <span>🎯 {getRefName(item.artistId, artists)}</span>}
+                  {getTeamName(item.team) && <span>👥 {getTeamName(item.team)}</span>}
+                </div>
+              )}
             </button>
           ))}
         </div>
@@ -135,16 +153,17 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
               <div className="meta-panel">
                 <span>📁 {getRefName(draft.projectId, projects) || 'Kein Projekt'}</span>
                 <span>🎯 {getRefName(draft.artistId, artists) || 'Keine Strategie'}</span>
-                <span>🏷️ {draft.category || 'Keine Kategorie'}</span>
-                <span>🔖 {Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || 'Keine Tags')}</span>
+                <span>👥 {getTeamName(draft.team) || 'Kein Team'}</span>
+                {toList(draft.category).length ? toList(draft.category).map((c) => <span key={`note-cat-${c}`}>🏷️ {c}</span>) : <span>🏷️ Keine Kategorie</span>}
+                {toList(draft.tags).length ? toList(draft.tags).map((t) => <span key={`note-tag-${t}`}>🔖 {t}</span>) : <span>🔖 Keine Tags</span>}
               </div>
             )}
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
             <input value={draft.publicInfo || ''} onChange={(e) => setDraft((d) => ({ ...d, publicInfo: e.target.value }))} />
-            <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorie" />
+            <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorien (kommagetrennt)" />
             <RefSelect items={projects} value={draft.projectId?._id || draft.projectId || ''} onChange={(projectId) => setDraft((d) => ({ ...d, projectId }))} label="Projekt wählen" />
             <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Strategie wählen" />
-            <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags" />
+            <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" />
             <select value={draft.status || 'open'} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}>{STATUS_OPTIONS.map((s) => <option key={s} value={s}>{s}</option>)}</select>
             <textarea value={typeof draft.decryptedPreview === 'string' ? draft.decryptedPreview : '****'} onChange={(e) => setDraft((d) => ({ ...d, decryptedPreview: e.target.value }))} rows={6} readOnly={typeof draft.decryptedPreview !== 'string'} />
             <div className="row">
@@ -165,15 +184,16 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
               <div className="meta-panel">
                 <span>📁 {getRefName(draft.projectId, projects) || 'Kein Projekt'}</span>
                 <span>🎯 {getRefName(draft.artistId, artists) || 'Keine Strategie'}</span>
-                <span>🏷️ {draft.category || 'Keine Kategorie'}</span>
-                <span>🔖 {Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || 'Keine Tags')}</span>
+                <span>👥 {getTeamName(draft.team) || 'Kein Team'}</span>
+                {toList(draft.category).length ? toList(draft.category).map((c) => <span key={`task-cat-${c}`}>🏷️ {c}</span>) : <span>🏷️ Keine Kategorie</span>}
+                {toList(draft.tags).length ? toList(draft.tags).map((t) => <span key={`task-tag-${t}`}>🔖 {t}</span>) : <span>🔖 Keine Tags</span>}
               </div>
             )}
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
-            <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} />
+            <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorien (kommagetrennt)" />
             <RefSelect items={projects} value={draft.projectId?._id || draft.projectId || ''} onChange={(projectId) => setDraft((d) => ({ ...d, projectId }))} label="Projekt wählen" />
             <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Strategie wählen" />
-            <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags" />
+            <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" />
             <select value={draft.status || 'open'} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}>{STATUS_OPTIONS.map((s) => <option key={s}>{s}</option>)}</select>
             <textarea value={draft.description || ''} onChange={(e) => setDraft((d) => ({ ...d, description: e.target.value }))} rows={5} />
             <button onClick={() => onSaveTask(draft)}>💾</button>
@@ -190,15 +210,16 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
               <div className="meta-panel">
                 <span>📁 {getRefName(draft.projectId, projects) || 'Kein Projekt'}</span>
                 <span>🎯 {getRefName(draft.artistId, artists) || 'Keine Strategie'}</span>
-                <span>🏷️ {draft.category || 'Keine Kategorie'}</span>
-                <span>🔖 {Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || 'Keine Tags')}</span>
+                <span>👥 {getTeamName(draft.team) || 'Kein Team'}</span>
+                {toList(draft.category).length ? toList(draft.category).map((c) => <span key={`todo-cat-${c}`}>🏷️ {c}</span>) : <span>🏷️ Keine Kategorie</span>}
+                {toList(draft.tags).length ? toList(draft.tags).map((t) => <span key={`todo-tag-${t}`}>🔖 {t}</span>) : <span>🔖 Keine Tags</span>}
               </div>
             )}
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
-            <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} />
+            <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorien (kommagetrennt)" />
             <RefSelect items={projects} value={draft.projectId?._id || draft.projectId || ''} onChange={(projectId) => setDraft((d) => ({ ...d, projectId }))} label="Projekt wählen" />
             <RefSelect items={artists} value={draft.artistId?._id || draft.artistId || ''} onChange={(artistId) => setDraft((d) => ({ ...d, artistId }))} label="Strategie wählen" />
-            <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags" />
+            <input value={Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')} onChange={(e) => setDraft((d) => ({ ...d, tags: e.target.value }))} placeholder="Tags (kommagetrennt)" />
             <select value={draft.status || 'open'} onChange={(e) => setDraft((d) => ({ ...d, status: e.target.value }))}>{STATUS_OPTIONS.map((s) => <option key={s}>{s}</option>)}</select>
             <textarea value={draft.details || ''} onChange={(e) => setDraft((d) => ({ ...d, details: e.target.value }))} rows={5} />
             <button onClick={() => onSaveTodo(draft)}>💾</button>
