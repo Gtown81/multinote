@@ -1,9 +1,9 @@
 # Atelier Notes (Web + Android + iOS)
 
 ## Was jetzt funktioniert
-- Seiten im Header: **Workspace**, **Teams**, **Profil**
+- Seiten im Header: **Workspace**, **Teams**, **Profil** (Projekte/Strategie jetzt im Workspace-Tabbereich)
 - Oben im Header: E2E Passwort-Feld + Checkbox „Im Browser speichern“ für automatisches Entschlüsseln
-- Workspace mit Tabs: **Notes / Tasks / Todos**
+- Workspace mit Tabs: **Notes / Tasks / Todos / Projekte / Strategie**
 - Auto-Entschlüsseln: Checkbox **Alle auto entschlüsseln** im Header
 - Suche oberhalb der Tabs über Notes/Tasks/Todos inkl. Tags/Kategorie/Projekt
 - Tags, Kategorie und Projekt für Notes/Tasks/Todos

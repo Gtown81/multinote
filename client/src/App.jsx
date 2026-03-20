@@ -4,8 +4,6 @@ import AppHeader from './components/AppHeader.jsx';
 import WorkspacePage from './components/WorkspacePage.jsx';
 import TeamPage from './components/TeamPage.jsx';
 import ProfilePage from './components/ProfilePage.jsx';
-import ProjectsPage from './components/ProjectsPage.jsx';
-import ArtistsPage from './components/ArtistsPage.jsx';
 import CreateModal from './components/CreateModal.jsx';
 import { api, setToken } from './services/api.js';
 import { decryptText, encryptText } from './utils/crypto.js';
@@ -87,7 +85,18 @@ export default function App() {
     const handler = async () => {
       const synced = await flushQueue(api);
       if (synced > 0) await loadData();
-      setQueueCount(queuedCount());
+  
+    if (createMode === 'project') {
+      const { data } = await api.post('/projects', { name: form.title, description: form.body || '' });
+      if (data.project) setProjects((prev) => [data.project, ...prev]);
+    }
+
+    if (createMode === 'artist') {
+      const { data } = await api.post('/artists', { name: form.title, profile: form.body || '' });
+      if (data.artist) setArtists((prev) => [data.artist, ...prev]);
+    }
+
+    setQueueCount(queuedCount());
     };
     window.addEventListener('online', handler);
     return () => window.removeEventListener('online', handler);
@@ -219,6 +228,17 @@ export default function App() {
       if (data.todo) setTodos((prev) => [data.todo, ...prev]);
     }
 
+
+    if (createMode === 'project') {
+      const { data } = await api.post('/projects', { name: form.title, description: form.body || '' });
+      if (data.project) setProjects((prev) => [data.project, ...prev]);
+    }
+
+    if (createMode === 'artist') {
+      const { data } = await api.post('/artists', { name: form.title, profile: form.body || '' });
+      if (data.artist) setArtists((prev) => [data.artist, ...prev]);
+    }
+
     setQueueCount(queuedCount());
     setForm(emptyForm());
     setCreateOpen(false);
@@ -253,6 +273,8 @@ export default function App() {
           artists={artists}
           activeProjectId={activeProjectId}
           activeArtistId={activeArtistId}
+          setActiveProjectId={setActiveProjectId}
+          setActiveArtistId={setActiveArtistId}
           onDecrypt={async (note) => {
             if (!cryptoPassword) return alert('Bitte E2E Passwort setzen');
             const plain = await decryptText(note.encryptedContent, cryptoPassword).catch(() => null);
@@ -290,8 +312,16 @@ export default function App() {
             if (data.todo) setTodos((prev) => prev.map((n) => (n._id === draft._id ? data.todo : n)));
           }}
           onOpenCreateForTab={(currentTab) => {
-            setCreateMode(currentTab === 'notes' ? 'note' : currentTab === 'tasks' ? 'task' : 'todo');
+            setCreateMode(currentTab === 'notes' ? 'note' : currentTab === 'tasks' ? 'task' : currentTab === 'todos' ? 'todo' : currentTab === 'projects' ? 'project' : 'artist');
             setCreateOpen(true);
+          }}
+          onSaveProject={async (draft) => {
+            const { data } = await api.put(`/projects/${draft._id}`, { name: draft.name, description: draft.description || '' });
+            setProjects((prev) => prev.map((p) => (p._id === draft._id ? data.project : p)));
+          }}
+          onSaveArtist={async (draft) => {
+            const { data } = await api.put(`/artists/${draft._id}`, { name: draft.name, profile: draft.profile || '' });
+            setArtists((prev) => prev.map((a) => (a._id === draft._id ? data.artist : a)));
           }}
         />
       )}
@@ -303,6 +333,8 @@ export default function App() {
           artists={artists}
           activeProjectId={activeProjectId}
           activeArtistId={activeArtistId}
+          setActiveProjectId={setActiveProjectId}
+          setActiveArtistId={setActiveArtistId}
           onCreateTeam={async (name, groupPassword) => {
             const ownerEncryptedTeamPassword = await encryptGroupPassword(groupPassword, user.email);
             const { data } = await api.post('/teams', {
@@ -327,33 +359,6 @@ export default function App() {
             const encryptedGroupKey = await encryptGroupPassword(groupPassword, email.toLowerCase());
             const { data } = await api.post(`/teams/${teamId}/members`, { email, role, encryptedGroupKey });
             upsertTeam(data.team)
-          }}
-        />
-      )}
-
-
-      {page === 'projects' && (
-        <ProjectsPage
-          projects={projects}
-          activeProjectId={activeProjectId}
-          setActiveProjectId={setActiveProjectId}
-          onCreateProject={async (name, description) => {
-            const { data } = await api.post('/projects', { name, description });
-            setProjects((prev) => [data.project, ...prev]);
-            setActiveProjectId(data.project._id);
-          }}
-        />
-      )}
-
-      {page === 'artists' && (
-        <ArtistsPage
-          artists={artists}
-          activeArtistId={activeArtistId}
-          setActiveArtistId={setActiveArtistId}
-          onCreateArtist={async (name, profile) => {
-            const { data } = await api.post('/artists', { name, profile });
-            setArtists((prev) => [data.artist, ...prev]);
-            setActiveArtistId(data.artist._id);
           }}
         />
       )}
