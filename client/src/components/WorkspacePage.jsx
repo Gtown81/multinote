@@ -25,6 +25,7 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
   const [selectedId, setSelectedId] = useState('');
   const [draft, setDraft] = useState({});
   const [search, setSearch] = useState('');
+  const [metaExpanded, setMetaExpanded] = useState(false);
 
   const base = tab === 'notes' ? notes : tab === 'tasks' ? tasks : tab === 'todos' ? todos : tab === 'projects' ? projects : artists;
 
@@ -55,7 +56,18 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
     if (item) setDraft(item);
   }, [selectedId, items]);
 
+  useEffect(() => {
+    setMetaExpanded(false);
+  }, [tab, selectedId]);
+
   const current = items.find((i) => i._id === selectedId);
+  const getRefId = (value) => (value && typeof value === 'object' ? value._id : value);
+  const getRefName = (value, source) => {
+    if (!value) return '';
+    if (typeof value === 'object' && value.name) return value.name;
+    const id = getRefId(value);
+    return source.find((x) => x._id === id)?.name || '';
+  };
 
   return (
     <section className="card modern split">
@@ -90,7 +102,17 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
           {items.map((item) => (
             <button key={item._id} className={`item text-left ${selectedId === item._id ? 'selected' : ''}`} onClick={() => setSelectedId(item._id)}>
               <strong>{item.title || item.name}</strong>
-              {tab !== 'projects' && tab !== 'artists' && <p className="muted">Status: {item.status || 'open'} · {item.statusUpdatedBy?.username || '—'} · {item.statusUpdatedAt ? new Date(item.statusUpdatedAt).toLocaleString() : '-'}</p>}
+              {tab === 'notes' && (
+                <>
+                  {item.publicInfo && <p className="muted">{item.publicInfo}</p>}
+                  <p className="muted">
+                    {typeof item.decryptedPreview === 'string' ? '🔓 Entschlüsselt' : '🔒 Verschlüsselt'}
+                    {getRefName(item.projectId, projects) ? ` · 📁 ${getRefName(item.projectId, projects)}` : ''}
+                    {getRefName(item.artistId, artists) ? ` · 🎯 ${getRefName(item.artistId, artists)}` : ''}
+                  </p>
+                </>
+              )}
+              {tab !== 'notes' && tab !== 'projects' && tab !== 'artists' && <p className="muted">Status: {item.status || 'open'}</p>}
             </button>
           ))}
         </div>
@@ -102,6 +124,17 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
         {current && tab === 'notes' && (
           <div className="stack">
             <h3>Notiz bearbeiten</h3>
+            <button className="meta-toggle" onClick={() => setMetaExpanded((prev) => !prev)}>
+              {metaExpanded ? '▾ Details ausblenden' : '▸ Details anzeigen'}
+            </button>
+            {metaExpanded && (
+              <div className="meta-panel">
+                <span>📁 {getRefName(draft.projectId, projects) || 'Kein Projekt'}</span>
+                <span>🎯 {getRefName(draft.artistId, artists) || 'Keine Strategie'}</span>
+                <span>🏷️ {draft.category || 'Keine Kategorie'}</span>
+                <span>🔖 {Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || 'Keine Tags')}</span>
+              </div>
+            )}
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
             <input value={draft.publicInfo || ''} onChange={(e) => setDraft((d) => ({ ...d, publicInfo: e.target.value }))} />
             <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} placeholder="Kategorie" />
@@ -121,6 +154,17 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
         {current && tab === 'tasks' && (
           <div className="stack">
             <h3>Task bearbeiten</h3>
+            <button className="meta-toggle" onClick={() => setMetaExpanded((prev) => !prev)}>
+              {metaExpanded ? '▾ Details ausblenden' : '▸ Details anzeigen'}
+            </button>
+            {metaExpanded && (
+              <div className="meta-panel">
+                <span>📁 {getRefName(draft.projectId, projects) || 'Kein Projekt'}</span>
+                <span>🎯 {getRefName(draft.artistId, artists) || 'Keine Strategie'}</span>
+                <span>🏷️ {draft.category || 'Keine Kategorie'}</span>
+                <span>🔖 {Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || 'Keine Tags')}</span>
+              </div>
+            )}
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
             <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} />
             <RefSelect items={projects} value={draft.projectId?._id || draft.projectId || ''} onChange={(projectId) => setDraft((d) => ({ ...d, projectId }))} label="Projekt wählen" />
@@ -135,6 +179,17 @@ export default function WorkspacePage({ tab, setTab, notes, tasks, todos, projec
         {current && tab === 'todos' && (
           <div className="stack">
             <h3>Todo bearbeiten</h3>
+            <button className="meta-toggle" onClick={() => setMetaExpanded((prev) => !prev)}>
+              {metaExpanded ? '▾ Details ausblenden' : '▸ Details anzeigen'}
+            </button>
+            {metaExpanded && (
+              <div className="meta-panel">
+                <span>📁 {getRefName(draft.projectId, projects) || 'Kein Projekt'}</span>
+                <span>🎯 {getRefName(draft.artistId, artists) || 'Keine Strategie'}</span>
+                <span>🏷️ {draft.category || 'Keine Kategorie'}</span>
+                <span>🔖 {Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || 'Keine Tags')}</span>
+              </div>
+            )}
             <input value={draft.title || ''} onChange={(e) => setDraft((d) => ({ ...d, title: e.target.value }))} />
             <input value={draft.category || ''} onChange={(e) => setDraft((d) => ({ ...d, category: e.target.value }))} />
             <RefSelect items={projects} value={draft.projectId?._id || draft.projectId || ''} onChange={(projectId) => setDraft((d) => ({ ...d, projectId }))} label="Projekt wählen" />
