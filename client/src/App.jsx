@@ -100,6 +100,14 @@ export default function App() {
     }
   }
 
+  async function encryptGroupPassword(groupPassword, recipientHint) {
+    if (!groupPassword) return '';
+    const keyBasis = cryptoPassword || recipientHint;
+    if (!keyBasis) return '';
+    const encrypted = await encryptText(groupPassword, keyBasis);
+    return JSON.stringify(encrypted);
+  }
+
   async function submitCreate() {
     if (!form.title.trim()) return;
 
@@ -185,17 +193,25 @@ export default function App() {
             if (!plain && plain !== '') return alert('Entschlüsselung fehlgeschlagen');
             setNotes((prev) => prev.map((n) => (n._id === note._id ? { ...n, decryptedPreview: plain } : n)));
           }}
-          onUpdateNote={async (id, patch) => {
-            const { data } = await apiWithOffline('put', `/notes/${id}`, patch);
-            if (data.note) setNotes((prev) => prev.map((n) => (n._id === id ? data.note : n)));
+          onSaveNote={async (draft) => {
+            if (!cryptoPassword) return alert('E2E Passwort fehlt');
+            const encryptedContent = await encryptText(draft.decryptedPreview || '', cryptoPassword);
+            const { data } = await apiWithOffline('put', `/notes/${draft._id}`, {
+              title: draft.title,
+              publicInfo: draft.publicInfo || '',
+              team: draft.team || null,
+              shared: !!draft.team,
+              encryptedContent
+            });
+            if (data.note) setNotes((prev) => prev.map((n) => (n._id === draft._id ? data.note : n)));
           }}
-          onUpdateTask={async (id, patch) => {
-            const { data } = await apiWithOffline('put', `/tasks/${id}`, patch);
-            if (data.task) setTasks((prev) => prev.map((n) => (n._id === id ? data.task : n)));
+          onSaveTask={async (draft) => {
+            const { data } = await apiWithOffline('put', `/tasks/${draft._id}`, draft);
+            if (data.task) setTasks((prev) => prev.map((n) => (n._id === draft._id ? data.task : n)));
           }}
-          onUpdateTodo={async (id, patch) => {
-            const { data } = await apiWithOffline('put', `/todos/${id}`, patch);
-            if (data.todo) setTodos((prev) => prev.map((n) => (n._id === id ? data.todo : n)));
+          onSaveTodo={async (draft) => {
+            const { data } = await apiWithOffline('put', `/todos/${draft._id}`, draft);
+            if (data.todo) setTodos((prev) => prev.map((n) => (n._id === draft._id ? data.todo : n)));
           }}
         />
       )}
@@ -203,20 +219,29 @@ export default function App() {
       {page === 'teams' && (
         <TeamPage
           teams={teams}
-          onCreateTeam={async (name) => {
-            const { data } = await api.post('/teams', { name });
+          onCreateTeam={async (name, groupPassword) => {
+            const ownerEncryptedTeamPassword = await encryptGroupPassword(groupPassword, user.email);
+            const { data } = await api.post('/teams', {
+              name,
+              security: groupPassword ? { enabled: true, ownerEncryptedTeamPassword, memberEncryptedKeys: [] } : undefined
+            });
             setTeams((prev) => [data.team, ...prev]);
           }}
-          onInvite={async (teamId, email, role) => {
-            const { data } = await api.post(`/teams/${teamId}/members`, { email, role });
+          onSaveTeam={async (teamId, name) => {
+            const { data } = await api.put(`/teams/${teamId}`, { name });
             setTeams((prev) => prev.map((t) => (t._id === teamId ? data.team : t)));
           }}
-          onSetSecurity={async (teamId, ownerEncryptedTeamPassword, memberEncryptedKeys) => {
+          onSetSecurity={async (teamId, groupPassword) => {
+            const ownerEncryptedTeamPassword = await encryptGroupPassword(groupPassword, user.email);
             const { data } = await api.post(`/teams/${teamId}/security`, {
-              enabled: true,
-              ownerEncryptedTeamPassword,
-              memberEncryptedKeys
+              enabled: !!groupPassword,
+              ownerEncryptedTeamPassword
             });
+            setTeams((prev) => prev.map((t) => (t._id === teamId ? data.team : t)));
+          }}
+          onInvite={async (teamId, email, role, groupPassword) => {
+            const encryptedGroupKey = await encryptGroupPassword(groupPassword, email.toLowerCase());
+            const { data } = await api.post(`/teams/${teamId}/members`, { email, role, encryptedGroupKey });
             setTeams((prev) => prev.map((t) => (t._id === teamId ? data.team : t)));
           }}
         />

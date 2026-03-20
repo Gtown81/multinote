@@ -1,77 +1,87 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
-export default function TeamPage({ teams, onCreateTeam, onInvite, onSetSecurity }) {
+export default function TeamPage({ teams, onCreateTeam, onInvite, onSaveTeam, onSetSecurity }) {
   const [teamName, setTeamName] = useState('');
-  const [selectedTeam, setSelectedTeam] = useState('');
-  const [email, setEmail] = useState('');
-  const [role, setRole] = useState('viewer');
-  const [ownerEncrypted, setOwnerEncrypted] = useState('');
-  const [memberEncrypted, setMemberEncrypted] = useState('[]');
+  const [groupPassword, setGroupPassword] = useState('');
+  const [selectedTeamId, setSelectedTeamId] = useState('');
+  const [draft, setDraft] = useState(null);
+  const [inviteEmail, setInviteEmail] = useState('');
+  const [inviteRole, setInviteRole] = useState('viewer');
+
+  useEffect(() => {
+    if (!teams.length) return;
+    if (!selectedTeamId) setSelectedTeamId(teams[0]._id);
+  }, [teams]);
+
+  useEffect(() => {
+    const t = teams.find((x) => x._id === selectedTeamId);
+    setDraft(t || null);
+  }, [selectedTeamId, teams]);
 
   return (
-    <section className="card modern">
-      <h2>Team Management</h2>
+    <section className="card modern split">
       <div className="stack">
-        <input value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Teamname" />
-        <button onClick={() => teamName && (onCreateTeam(teamName), setTeamName(''))}>Team erstellen</button>
-      </div>
-
-      <div className="stack mt">
-        <select value={selectedTeam} onChange={(e) => setSelectedTeam(e.target.value)}>
-          <option value="">Team auswählen</option>
-          {teams.map((t) => (
-            <option key={t._id} value={t._id}>{t.name}</option>
-          ))}
-        </select>
-
-        <input value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Member E-Mail" />
-        <select value={role} onChange={(e) => setRole(e.target.value)}>
-          <option value="viewer">Viewer</option>
-          <option value="editor">Editor</option>
-          <option value="owner">Owner</option>
-        </select>
-        <button onClick={() => selectedTeam && email && onInvite(selectedTeam, email, role)}>Mitglied hinzufügen</button>
-
-        <input
-          value={ownerEncrypted}
-          onChange={(e) => setOwnerEncrypted(e.target.value)}
-          placeholder="Owner-encrypted Team-PW Blob"
-        />
-        <textarea
-          value={memberEncrypted}
-          onChange={(e) => setMemberEncrypted(e.target.value)}
-          placeholder='Member Keys JSON z.B. [{"user":"...","encryptedKey":"..."}]'
-          rows={3}
-        />
+        <h2>Teams</h2>
+        <input value={teamName} onChange={(e) => setTeamName(e.target.value)} placeholder="Neues Team" />
+        <input value={groupPassword} onChange={(e) => setGroupPassword(e.target.value)} placeholder="Gruppenpasswort (optional)" />
         <button
           onClick={() => {
-            if (!selectedTeam) return;
-            let parsed = [];
-            try {
-              parsed = JSON.parse(memberEncrypted);
-            } catch {
-              alert('Member JSON ist ungültig');
-              return;
-            }
-            onSetSecurity(selectedTeam, ownerEncrypted, parsed);
+            if (!teamName.trim()) return;
+            onCreateTeam(teamName, groupPassword);
+            setTeamName('');
+            setGroupPassword('');
           }}
         >
-          Team Passwort-Schutz setzen
+          Team erstellen
         </button>
+
+        <div className="list">
+          {teams.map((team) => (
+            <button className={`item text-left ${selectedTeamId === team._id ? 'selected' : ''}`} key={team._id} onClick={() => setSelectedTeamId(team._id)}>
+              <strong>{team.name}</strong>
+              <p className="muted">{team.members?.length || 0} Mitglieder</p>
+            </button>
+          ))}
+        </div>
       </div>
 
-      <div className="list">
-        {teams.map((team) => (
-          <article className="item" key={team._id}>
-            <strong>{team.name}</strong>
-            <p className="muted">Security: {team.security?.enabled ? 'aktiv' : 'inaktiv'}</p>
+      <div className="editor stack">
+        {!draft && <p className="muted">Wähle ein Team.</p>}
+        {draft && (
+          <>
+            <h3>Team öffnen & bearbeiten</h3>
+            <input value={draft.name || ''} onChange={(e) => setDraft((d) => ({ ...d, name: e.target.value }))} />
+            <button onClick={() => onSaveTeam(draft._id, draft.name)}>Name speichern</button>
+
+            <h4>Gruppenpasswort setzen/ändern</h4>
+            <input value={groupPassword} onChange={(e) => setGroupPassword(e.target.value)} placeholder="Neues Gruppenpasswort" />
+            <button onClick={() => onSetSecurity(draft._id, groupPassword)}>Gruppenpasswort speichern</button>
+            <p className="muted">Beim Einladen wird das Gruppenpasswort automatisch verschlüsselt für das Mitglied geteilt.</p>
+
+            <h4>Mitglied einladen</h4>
+            <input value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} placeholder="E-Mail" />
+            <select value={inviteRole} onChange={(e) => setInviteRole(e.target.value)}>
+              <option value="viewer">Viewer</option>
+              <option value="editor">Editor</option>
+              <option value="owner">Owner</option>
+            </select>
+            <button
+              onClick={() => {
+                if (!inviteEmail) return;
+                onInvite(draft._id, inviteEmail, inviteRole, groupPassword);
+                setInviteEmail('');
+              }}
+            >
+              Einladen
+            </button>
+
             <ul>
-              {(team.members || []).map((m) => (
-                <li key={m.user?._id || m.user}>{m.user?.email || 'unbekannt'} — {m.role}</li>
+              {(draft.members || []).map((m) => (
+                <li key={m.user?._id || m.user}>{m.user?.email || 'unknown'} - {m.role}</li>
               ))}
             </ul>
-          </article>
-        ))}
+          </>
+        )}
       </div>
     </section>
   );

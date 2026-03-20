@@ -1,17 +1,32 @@
 # Atelier Notes (Web + Android + iOS)
 
-## Umgesetzte Features
-- Auth mit JWT
-- E2E-verschlüsselte Notes (Client-seitig AES-GCM)
-- Notes mit zusätzlichem **unverschlüsselten Feld `publicInfo`** (immer lesbar)
+## Was jetzt funktioniert
+- Seiten im Header: **Workspace**, **Teams**, **Profil**
 - Workspace mit Tabs: **Notes / Tasks / Todos**
-- Globaler **+ Button** zum Erstellen von Note/Task/Todo inkl. Team-Zuweisung
-- Eigene Seiten im Header: **Workspace**, **Teams**, **Profil**
-- Teamverwaltung auf eigener Seite inkl. Rollen (Owner/Editor/Viewer)
-- Team-Sicherheitsdaten: Owner kann verschlüsseltes Team-Passwort + member encrypted keys speichern
-- Dateianhänge bei Notes
-- Offline Queue Sync
-- Push Subscription Speicherung
+- Globaler **+ Button** für neue Note/Task/Todo (mit Team-Zuweisung)
+- Notes haben:
+  - verschlüsselten Inhalt (E2E)
+  - zusätzliches unverschlüsseltes Feld `publicInfo` (immer sichtbar)
+- Notes/Tasks/Todos können geöffnet und bearbeitet werden
+- Teams können geöffnet und bearbeitet werden
+- Owner kann Gruppenpasswort setzen und beim Einladen teilen (verschlüsselt gespeichert)
+
+## Gruppenpasswort (ohne Blob-Verwirrung)
+### Team erstellen mit Gruppenpasswort
+1. In **Teams** gehen.
+2. `Neues Team` eintragen.
+3. Optional `Gruppenpasswort` eintragen.
+4. `Team erstellen` klicken.
+
+Wenn ein Gruppenpasswort gesetzt ist, wird es clientseitig verschlüsselt und als Team-Sicherheitsdaten gespeichert.
+
+### Mitglied einladen + Gruppenpasswort teilen
+1. Team öffnen.
+2. E-Mail + Rolle eintragen.
+3. Gruppenpasswort im Feld lassen/eintragen.
+4. `Einladen` klicken.
+
+Die App erzeugt dabei automatisch einen verschlüsselten Schlüssel-Eintrag für das Mitglied.
 
 ## API Endpoints
 - `POST /api/auth/register`
@@ -22,7 +37,7 @@
 - `DELETE /api/notes/:id/attachments/:attachmentId`
 - `GET/POST/PUT/DELETE /api/tasks`
 - `GET/POST/PUT/DELETE /api/todos`
-- `GET/POST /api/teams`
+- `GET/POST/PUT /api/teams`
 - `POST /api/teams/:id/members`
 - `PATCH /api/teams/:id/members/:memberId`
 - `POST /api/teams/:id/security`
@@ -42,14 +57,4 @@ cd client
 cp .env.example .env
 npm install
 npm run dev
-```
-
-## Mobile / APK
-```bash
-cd client
-npm run sync:mobile
-npx cap add android
-npx cap add ios
-npm run android
-npm run ios
 ```

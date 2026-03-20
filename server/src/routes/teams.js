@@ -12,7 +12,7 @@ router.get('/', async (req, res) => {
 });
 
 router.post('/', async (req, res) => {
-  const { name } = req.body;
+  const { name, security = null } = req.body;
   if (!name?.trim()) {
     return res.status(400).json({ message: 'Team-Name ist Pflicht' });
   }
@@ -20,14 +20,30 @@ router.post('/', async (req, res) => {
   const team = await Team.create({
     name,
     createdBy: req.user.sub,
-    members: [{ user: req.user.sub, role: 'owner' }]
+    members: [{ user: req.user.sub, role: 'owner' }],
+    security: security || undefined
   });
 
-  res.status(201).json({ team });
+  const populated = await Team.findById(team._id).populate('members.user', 'username email');
+  res.status(201).json({ team: populated });
+});
+
+router.put('/:id', async (req, res) => {
+  const { name } = req.body;
+  const team = await Team.findById(req.params.id);
+  if (!team) return res.status(404).json({ message: 'Team nicht gefunden' });
+
+  const me = team.members.find((m) => String(m.user) === req.user.sub);
+  if (!me || !['owner', 'editor'].includes(me.role)) return res.status(403).json({ message: 'Keine Berechtigung' });
+
+  if (name?.trim()) team.name = name.trim();
+  await team.save();
+  const populated = await Team.findById(req.params.id).populate('members.user', 'username email');
+  res.json({ team: populated });
 });
 
 router.post('/:id/members', async (req, res) => {
-  const { email, role = 'viewer' } = req.body;
+  const { email, role = 'viewer', encryptedGroupKey = '' } = req.body;
   const team = await Team.findById(req.params.id);
   if (!team) {
     return res.status(404).json({ message: 'Team nicht gefunden' });
@@ -46,8 +62,17 @@ router.post('/:id/members', async (req, res) => {
   const exists = team.members.some((m) => String(m.user) === String(user._id));
   if (!exists) {
     team.members.push({ user: user._id, role });
-    await team.save();
   }
+
+  if (encryptedGroupKey) {
+    team.security.enabled = true;
+    team.security.memberEncryptedKeys = [
+      ...(team.security.memberEncryptedKeys || []).filter((k) => String(k.user) !== String(user._id)),
+      { user: user._id, encryptedKey: encryptedGroupKey }
+    ];
+  }
+
+  await team.save();
 
   const populated = await Team.findById(req.params.id).populate('members.user', 'username email');
   return res.json({ team: populated });
@@ -73,7 +98,7 @@ router.patch('/:id/members/:memberId', async (req, res) => {
 });
 
 router.post('/:id/security', async (req, res) => {
-  const { enabled = true, ownerEncryptedTeamPassword = '', memberEncryptedKeys = [] } = req.body;
+  const { enabled = true, ownerEncryptedTeamPassword = '' } = req.body;
   const team = await Team.findById(req.params.id);
   if (!team) return res.status(404).json({ message: 'Team nicht gefunden' });
 
@@ -84,7 +109,6 @@ router.post('/:id/security', async (req, res) => {
 
   team.security.enabled = enabled;
   team.security.ownerEncryptedTeamPassword = ownerEncryptedTeamPassword;
-  team.security.memberEncryptedKeys = memberEncryptedKeys;
   await team.save();
 
   const populated = await Team.findById(req.params.id).populate('members.user', 'username email');
